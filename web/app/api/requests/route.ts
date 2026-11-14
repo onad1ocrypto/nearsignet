@@ -8,6 +8,7 @@ interface StoredReq {
   name: string;
   email: string;
   nearAccount?: string;
+  freelancerAccount?: string;
   brief: string;
   title?: string;
   budget: number;
@@ -26,6 +27,7 @@ export async function POST(req: Request) {
   const name = clean(b.name, 80);
   const email = clean(b.email, 120);
   const nearAccount = clean(b.nearAccount, 64).toLowerCase() || undefined;
+  const freelancerAccount = clean(b.freelancerAccount, 64).toLowerCase() || undefined;
   const brief = String(b.brief ?? "").trim().slice(0, 1200);
   const title = clean(b.title, 90) || undefined;
   const budget = Math.max(1, Math.min(100_000, Number(b.budget || 100)));
@@ -48,6 +50,7 @@ export async function POST(req: Request) {
     name,
     email,
     nearAccount,
+    freelancerAccount,
     brief,
     title,
     budget,

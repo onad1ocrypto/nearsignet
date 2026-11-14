@@ -11,6 +11,8 @@ export interface IncomingRequest {
   name: string;
   email: string;
   nearAccount?: string;
+  /** Wallet of the freelancer whose profile link this brief was sent to. */
+  freelancerAccount?: string;
   brief: string;
   title?: string;
   budget: number;
@@ -85,6 +87,8 @@ export async function sendRequest(p: {
   name: string;
   email: string;
   nearAccount?: string;
+  /** Wallet of the freelancer whose profile link this brief was sent to. */
+  freelancerAccount?: string;
   brief: string;
   title?: string;
   budget: number;
@@ -205,6 +209,7 @@ export function requestAsOrder(r: IncomingRequest): Order {
     client,
     amount,
     nearAmount,
+    freelancerAccount: r.freelancerAccount,
     currency: "USD",
     due: due.toISOString().slice(0, 10),
     created: String(r.createdAt).slice(0, 10),

@@ -11,10 +11,12 @@ import {
   type MeSocials,
 } from "./profile";
 import { NEAR_CONTRACT_ID } from "./near";
+import type { LoginProof } from "./nearAuth";
 import {
   connectNearBrowserWallet,
   disconnectNearBrowserWallet,
   getActiveWalletAccount,
+  signLoginProof,
   walletSessionHint,
   type SupportedWalletId,
 } from "./wallet";
@@ -30,6 +32,8 @@ export interface NearIdentity {
   network: string;
   balanceNear: string;
   verifiedOnChain: boolean;
+  /** True only when the account proved ownership with a wallet signature. */
+  signatureVerified?: boolean;
 }
 
 export interface Session {
@@ -84,7 +88,9 @@ interface Ctx {
   walletId: string | null;
   connectWallet: (walletId: SupportedWalletId, successUrl?: string) => Promise<{ ok: boolean; redirected?: boolean; error?: string }>;
   connectNearAccount: (accountId: string) => Promise<{ ok: boolean; error?: string }>;
-  connectNear: (accountId: string) => Promise<{ ok: boolean; error?: string }>;
+  connectNear: (accountId: string, proof?: LoginProof) => Promise<{ ok: boolean; error?: string }>;
+  /** Ask the connected wallet to sign a login message so the session is provably ours. */
+  proveWalletOwnership: () => Promise<{ ok: boolean; error?: string; accountId?: string }>;
   signInAsGuest: () => Promise<void>;
   startGuest: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -112,25 +118,60 @@ export function MeProvider({ children }: { children: ReactNode }) {
   const [sessionReady, setSessionReady] = useState(false);
   const [justSignedOut, setJustSignedOut] = useState(false);
 
-  const connectNearAccount = useCallback(async (accountId: string): Promise<{ ok: boolean; error?: string }> => {
-    try {
-      const r = await fetch("/api/auth/near", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId: accountId.trim().toLowerCase() }),
-      });
-      const j = (await r.json()) as { ok?: boolean; session?: Session; error?: string };
-      if (!r.ok || !j.ok || !j.session) {
-        return { ok: false, error: j.error || "Could not verify NEAR account" };
+  const connectNearAccount = useCallback(
+    async (accountId: string, proof?: LoginProof): Promise<{ ok: boolean; error?: string }> => {
+      try {
+        /*
+         * A connected wallet is the strongest identity we have in the tab: if the
+         * user is signed in as sasam.testnet, letting the form claim signet.testnet
+         * would hand them the client side of an escrow they do not pay for.
+         */
+        if (!proof) {
+          const live = await getActiveWalletAccount();
+          if (live?.accountId && live.accountId.toLowerCase() !== accountId.trim().toLowerCase()) {
+            return {
+              ok: false,
+              error: `This browser is signed in to your wallet as ${live.accountId}. Sign out of the wallet to use ${accountId}, or prove ownership of it with a wallet signature.`,
+            };
+          }
+        }
+        const r = await fetch("/api/auth/near", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            accountId: accountId.trim().toLowerCase(),
+            ...(proof ? { proof: { ...proof, accountId: accountId.trim().toLowerCase() } } : {}),
+          }),
+        });
+        const j = (await r.json()) as { ok?: boolean; session?: Session; error?: string };
+        if (!r.ok || !j.ok || !j.session) {
+          return { ok: false, error: j.error || "Could not verify NEAR account" };
+        }
+        setGuestActive(false);
+        setSession(j.session);
+        setMeState(readProfile(j.session));
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : "Network error" };
       }
-      setGuestActive(false);
-      setSession(j.session);
-      setMeState(readProfile(j.session));
-      return { ok: true };
+    },
+    []
+  );
+
+  /**
+   * Server issues the session only for a NEP-413 signature that verifies against a
+   * live on-chain key. No proof, no session — that is what makes "I am
+   * sasam.testnet" impossible to fake.
+   */
+  const proveWalletOwnership = useCallback(async (): Promise<{ ok: boolean; error?: string; accountId?: string }> => {
+    try {
+      const signed = await signLoginProof(NEAR_CONTRACT_ID);
+      const res = await connectNearAccount(signed.accountId, signed.proof);
+      return { ...res, accountId: signed.accountId };
     } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+      return { ok: false, error: e instanceof Error ? e.message : "Wallet signature cancelled" };
     }
-  }, []);
+  }, [connectNearAccount]);
 
   useEffect(() => {
     let alive = true;
@@ -279,6 +320,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
       connectWallet,
       connectNearAccount,
       connectNear: connectNearAccount,
+      proveWalletOwnership,
       signInAsGuest,
       startGuest: signInAsGuest,
       signOut,

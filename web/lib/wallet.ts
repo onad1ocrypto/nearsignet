@@ -1,5 +1,13 @@
 "use client";
 
+import {
+  buildLoginProof,
+  loginMessage,
+  nep413Payload,
+  randomNonce,
+  type LoginProof,
+  type SignMessageResult,
+} from "./nearAuth";
 import { Buffer } from "buffer";
 import type { WalletSelector } from "@near-wallet-selector/core";
 import { NEAR_CONTRACT_ID, NEAR_EXPLORER_URL, NEAR_NETWORK_ID } from "./near";
@@ -332,6 +340,50 @@ export async function signNearWalletCall({
   }
 
   return { txHash, explorerUrl: `${NEAR_EXPLORER_URL}/txns/${txHash}`, signerId: active.accountId };
+}
+
+/**
+ * Sign a NEP-413 login message with the connected wallet.
+ *
+ * This is an ownership proof, not a transaction: nothing is broadcast, no gas and
+ * no deposit. It is the only thing that stops someone from claiming an account id
+ * they do not control (e.g. browsing as sasam.testnet and grabbing its work).
+ */
+export async function signLoginProof(recipientId: string): Promise<{
+  accountId: string;
+  message: string;
+  proof: LoginProof;
+}> {
+  const selector = await getNearSelector();
+  if (!selector) throw new Error("Browser wallet unavailable — open this page in a normal browser tab");
+
+  const active =
+    (selector.isSignedIn() ? await getActiveWalletAccount() : null) ?? (await ensureWalletSession(selector));
+  if (!active?.accountId) throw new Error("Connect Meteor or Nightly first, then sign in.");
+
+  const wallet = await selector.wallet(active.walletId as SupportedWalletId);
+  const signMessage = (wallet as unknown as { signMessage?: (p: unknown) => Promise<SignMessageResult> }).signMessage;
+  if (typeof signMessage !== "function") {
+    throw new Error(`${active.walletId} cannot sign a login message. Use Meteor Wallet or Nightly Wallet.`);
+  }
+
+  const issuedAt = Date.now();
+  const message = loginMessage(active.accountId, issuedAt);
+  const nonce = randomNonce();
+  const payload = nep413Payload(message, recipientId, nonce);
+
+  const signed = await signMessage.call(wallet, {
+    message,
+    recipient: recipientId,
+    nonce,
+    callbackUrl: typeof window !== "undefined" ? window.location.origin : undefined,
+  });
+
+  return {
+    accountId: active.accountId,
+    message,
+    proof: buildLoginProof(active.accountId, recipientId, signed, message, nonce),
+  };
 }
 
 /** Diagnostics used by the order page banner: does the active wallet advertise tx signing? */

@@ -6,8 +6,8 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { useI18n } from "@/lib/i18n";
 import { useMe } from "@/lib/me";
-import { lsGet, lsRemove, lsSet } from "@/lib/safeStorage";
-import { getOrder, ORDERS, type Order, type Status } from "@/lib/data";
+import { lsGet, lsSet } from "@/lib/safeStorage";
+import { freelancerFor, getOrder, ORDERS, type Order, type Status } from "@/lib/data";
 import { loadIncomingById, myOrder, requestAsOrder, saveMyOrder, setRequestStatus } from "@/lib/requests";
 import {
   NEAR_CONTRACT_ID,
@@ -16,9 +16,9 @@ import {
   lockDepositNear,
   nearExplorerAccount,
   nearExplorerTx,
+  escrowSide,
   nearToYocto,
   usdToNear,
-  viewerRole,
 } from "@/lib/near";
 import { signNearWalletCall, walletCapabilities, walletSessionHint } from "@/lib/wallet";
 import { MoneyRail } from "@/components/MoneyRail";
@@ -199,7 +199,6 @@ function OrderDetailInner() {
 
   const [fire, setFire] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
-  const [, setPreviewTick] = useState(0);
   const [justSealed, setJustSealed] = useState(false);
   const [txHash, setTxHash] = useState<string>(order.txHash || order.txHashes?.release || "");
   const [sealCode, setSealCode] = useState<string>(order.sealId || `SEAL-${order.id}-NEAR`);
@@ -270,22 +269,29 @@ function OrderDetailInner() {
    * - no wallet (relayer sandbox / judge demo) -> you play both sides, which is the
    *   whole point of the 1-click sandbox, so the delivery panel stays available.
    */
-  const sandbox = !walletConnected;
-  const chainRole: "client" | "freelancer" = sandbox
-    ? "freelancer"
-    : viewerRole(chainEscrow, session.near?.accountId, NEAR_FREELANCER_DEFAULT);
   /**
-   * Per-order preview switch. The chain always knows who really paid, but a judge
-   * demo needs to walk both sides of the same escrow, so this only changes what
-   * THIS browser renders (nothing is signed with it).
+   * REAL ROLES, from the contract only.
+   *   escrow.client      -> may fund + approve the release
+   *   escrow.freelancer  -> may deliver the work
+   *   anybody else       -> read-only, no delivery box, no release button
+   * The account must have proven ownership (NEP-413 signature) to count at all, so
+   * "I am sasam.testnet" in a text field buys you nothing.
    */
-  const previewRole = lsGet(`nearsignet.viewAs.${order.id}`) as "client" | "freelancer" | null;
-  const role: "client" | "freelancer" = previewRole === "client" || previewRole === "freelancer" ? previewRole : chainRole;
-  const setPreviewRole = (r: "client" | "freelancer" | null) => {
-    if (r) lsSet(`nearsignet.viewAs.${order.id}`, r);
-    else lsRemove(`nearsignet.viewAs.${order.id}`);
-    setPreviewTick((n) => n + 1);
-  };
+  const proven = session.near?.signatureVerified === true;
+  /**
+   * The contract is the source of truth; the local order only fills in while the
+   * escrow does not exist on chain yet (a brief that has not been funded).
+   */
+  const worker = chainEscrow?.freelancer || order.freelancerAccount || freelancerFor(order).accountId;
+  const side = escrowSide(
+    { client: chainEscrow?.client || order.client.nearAccount, freelancer: worker },
+    session.near?.accountId,
+    proven
+  );
+  const sandbox = !session.near;
+  const role: "client" | "freelancer" | "nobody" = sandbox ? "freelancer" : side;
+  const canDeliver = role === "freelancer";
+  const canRelease = role === "client";
   const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
 
   /**
@@ -429,54 +435,34 @@ function OrderDetailInner() {
           padding: "10px 14px",
           borderRadius: 12,
           gap: 10,
-          background: role === "client" ? "rgba(56,189,248,0.08)" : "rgba(0,236,151,0.08)",
-          border: `1px solid ${role === "client" ? "rgba(56,189,248,0.38)" : "rgba(0,236,151,0.38)"}`,
+          background:
+            role === "client" ? "rgba(56,189,248,0.08)" : role === "freelancer" ? "rgba(0,236,151,0.08)" : "rgba(251,113,133,0.08)",
+          border: `1px solid ${role === "client" ? "rgba(56,189,248,0.38)" : role === "freelancer" ? "rgba(0,236,151,0.38)" : "rgba(251,113,133,0.4)"}`,
         }}
       >
         <div className="row wrap" style={{ gap: 8, fontSize: 12.5 }}>
-          <span className="mono" style={{ fontWeight: 700, color: role === "client" ? "#7dd3fc" : "var(--mint)" }}>
-            ● {(!previewRole && sandbox ? t("role.sandbox") : role === "client" ? t("role.client") : t("role.freelancer")).toUpperCase()}
+          <span className="mono" style={{ fontWeight: 700, color: role === "client" ? "#7dd3fc" : role === "freelancer" ? "var(--mint)" : "#fb7185" }}>
+            ● {(sandbox ? t("role.sandbox") : role === "client" ? t("role.client") : role === "freelancer" ? t("role.freelancer") : t("role.nobody")).toUpperCase()}
           </span>
           <span className="muted">
-            {previewRole
-              ? role === "client"
-                ? t("role.clientNote")
-                : t("role.freelancerNote")
-              : sandbox
+            {sandbox
               ? t("role.sandboxNote")
               : role === "client"
               ? t("role.clientNote")
-              : t("role.freelancerNote")}
+              : role === "freelancer"
+              ? t("role.freelancerNote")
+              : t("role.nobodyNote", { freelancer: worker })}
           </span>
         </div>
         <div className="row wrap" style={{ gap: 6 }}>
-          <button
-            type="button"
-            className={`chip mono ${role === "client" ? "on" : ""}`}
-            style={{ padding: "4px 10px", fontSize: 11.5 }}
-            onClick={() => setPreviewRole("client")}
-            title={t("role.previewTip")}
-          >
-            {t("role.asClient")}
-          </button>
-          <button
-            type="button"
-            className={`chip mono ${role === "freelancer" ? "on" : ""}`}
-            style={{ padding: "4px 10px", fontSize: 11.5 }}
-            onClick={() => setPreviewRole("freelancer")}
-            title={t("role.previewTip")}
-          >
-            {t("role.asFreelancer")}
-          </button>
-          {previewRole && (
-            <button
-              type="button"
-              className="btn sm ghost"
-              onClick={() => setPreviewRole(null)}
-              title={t("role.previewTip")}
-            >
-              <Icon name="refresh" size={12} /> {t("role.auto")}
-            </button>
+          {proven ? (
+            <span className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>
+              ✓ {t("role.provenAs", { acct: session.near?.accountId || "" })}
+            </span>
+          ) : (
+            <Link href="/signin" className="btn sm mint">
+              <Icon name="wallet" size={13} /> {t("role.proveShort")}
+            </Link>
           )}
         </div>
       </div>
@@ -516,7 +502,7 @@ function OrderDetailInner() {
         </Link>
       </div>
 
-      <MoneyRail order={order} status={status} role={role} />
+      <MoneyRail order={order} status={status} role={role === "client" ? "client" : "freelancer"} />
 
       {/* 5-Stage Glass Stepper */}
       {status !== "declined" && (
@@ -557,6 +543,7 @@ function OrderDetailInner() {
               onchainId={onchainId}
               log={log}
               flash={flash}
+              isCustom={isCustom}
               onFunded={(hash) => {
                 if (hash) setTxHash(hash);
                 setStatus("in_escrow");
@@ -566,7 +553,7 @@ function OrderDetailInner() {
             />
           )}
 
-          {(status === "in_escrow" || status === "verifying" || status === "revision") && role === "client" && (
+          {(status === "in_escrow" || status === "verifying" || status === "revision") && !canDeliver && (
             <div className="card pad col" style={{ gap: 12, borderColor: "rgba(56,189,248,0.35)", background: "rgba(56,189,248,0.06)" }}>
               <div className="row between wrap">
                 <div>
@@ -594,7 +581,7 @@ function OrderDetailInner() {
             </div>
           )}
 
-          {(status === "in_escrow" || status === "verifying" || status === "revision") && role !== "client" && (
+          {(status === "in_escrow" || status === "verifying" || status === "revision") && canDeliver && (
             <DeliveryPanel
               order={order}
               status={status}
@@ -644,7 +631,7 @@ function OrderDetailInner() {
             />
           )}
 
-          {status === "review" && (
+          {status === "review" && canRelease && (
             <ReviewPanel
               order={order}
               onchainId={onchainId}
@@ -800,12 +787,14 @@ function NearDepositPanel({
   log,
   onFunded,
   flash,
+  isCustom = false,
 }: {
   order: Order;
   onchainId: string;
   log: (l: Log) => void;
   onFunded: (txHash?: string) => void;
   flash: (msg: string) => void;
+  isCustom?: boolean;
 }) {
   const { t, money } = useI18n();
   const { me, walletConnected, walletId, session } = useMe();
@@ -845,12 +834,14 @@ function NearDepositPanel({
         }
         const signerAcct = session.near?.accountId || "";
         /**
-         * The escrow's freelancer side is always the platform relayer: it is the account
-         * that can later claim the timeout release, and the contract refuses a client who
-         * names themselves. Picking `me.nearAccount` here made the freelancer the signer's
-         * own wallet (which also degraded the label to e.g. "Sasamnearsignetprotocol").
+         * WHO THE ESCROW PAYS — this is the whole point of the two-account flow.
+         *
+         * On /to/<handle> the client is funding a named freelancer's work, so that
+         * handle becomes rec.freelancer and only that account may deliver. Everywhere
+         * else the signing wallet funds its own escrow and the relayer is the worker
+         * (the contract refuses client == freelancer, so it can never be both).
          */
-        const targetFreelancer = NEAR_FREELANCER_DEFAULT;
+        const namedFreelancer = freelancerFor(order).accountId;
         const walletLabel = signerAcct ? `${walletId || "wallet"}: ${signerAcct}` : "wallet";
         const cbUrl =
           typeof window !== "undefined"
@@ -858,7 +849,7 @@ function NearDepositPanel({
             : undefined;
         log({
           who: walletLabel,
-          msg: `sign_transaction("create_and_fund_escrow", "${onchainId}", freelancer="${targetFreelancer}")`,
+          msg: `sign_transaction("create_and_fund_escrow", "${onchainId}", freelancer="${namedFreelancer}")`,
           res: `Awaiting wallet signature (${depositNear} NEAR Testnet stake)…`,
           kind: "near",
         });
@@ -866,7 +857,7 @@ function NearDepositPanel({
           methodName: "create_and_fund_escrow",
           args: {
             order_id: onchainId,
-            freelancer: targetFreelancer,
+            freelancer: namedFreelancer,
             terms_hash: order.termsHash ?? `sha256:${onchainId}`,
             criteria_count: order.criteria.length,
             usd_cents: Math.round(order.amount * 100),
@@ -882,6 +873,14 @@ function NearDepositPanel({
           txHash: out.txHash,
           kind: "near",
         });
+        if (isCustom && session.near?.accountId) {
+          saveMyOrder({
+            ...order,
+            status: "in_escrow",
+            client: { ...order.client, nearAccount: session.near.accountId },
+            freelancerAccount: namedFreelancer,
+          });
+        }
         onFunded(out.txHash);
         return;
       }

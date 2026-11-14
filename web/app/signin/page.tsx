@@ -13,13 +13,13 @@ import { Kicker, LangSwitch, Logo, ThemeSwitch } from "@/components/ui";
 
 function SignInInner() {
   const { t, lang } = useI18n();
-  const { connectWallet, connectNear, startGuest, session, walletConnected, walletId, sessionReady } = useMe();
+  const { connectWallet, connectNear, proveWalletOwnership, startGuest, session, walletConnected, walletId, sessionReady } = useMe();
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next") || "/dashboard";
 
   const [accountId, setAccountId] = useState("raka.nearsignet-protocol.testnet");
-  const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc" | "faucet">("");
+  const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc" | "faucet" | "prove">("");
   const [err, setErr] = useState("");
   const [showRpc, setShowRpc] = useState(false);
   const [showFaucet, setShowFaucet] = useState(false);
@@ -59,6 +59,23 @@ function SignInInner() {
     if (!res.redirected) {
       router.push(next);
     }
+  };
+
+  /**
+   * The real sign-in: the wallet signs a NEP-413 message, the server checks the
+   * signature against the account's live access key, and only then is a session
+   * issued. Nothing about the account id can be claimed from a text field.
+   */
+  const handleProve = async () => {
+    setBusy("prove");
+    setErr("");
+    const res = await proveWalletOwnership();
+    setBusy("");
+    if (!res.ok) {
+      setErr(res.error || "Wallet signature could not be verified");
+      return;
+    }
+    router.push(next);
   };
 
   const handleConnectRpc = async (acct?: string) => {
@@ -300,6 +317,45 @@ function SignInInner() {
             </div>
           </div>
 
+          {/* PROVE OWNERSHIP — session is only issued for a verified signature */}
+          <div
+            className="col"
+            style={{
+              marginTop: 12,
+              padding: 14,
+              borderRadius: 14,
+              gap: 8,
+              background: walletConnected && session.near?.signatureVerified ? "rgba(0,236,151,0.08)" : "rgba(56,189,248,0.07)",
+              border: `1px solid ${walletConnected && session.near?.signatureVerified ? "rgba(0,236,151,0.4)" : "rgba(56,189,248,0.35)"}`,
+            }}
+          >
+            <div className="row between wrap" style={{ gap: 8 }}>
+              <span className="mono tiny" style={{ fontWeight: 700, color: walletConnected ? "var(--mint)" : "#7dd3fc" }}>
+                {walletConnected && session.near?.signatureVerified
+                  ? `● OWNERSHIP PROVEN · ${session.near?.accountId}`
+                  : "● PROVE ACCOUNT OWNERSHIP"}
+              </span>
+              <span className="badge mono" style={{ fontSize: 10.5 }}>NEP-413 SIGNATURE</span>
+            </div>
+            <p className="tiny muted" style={{ lineHeight: 1.55 }}>
+              {t("role.proveBody")}
+            </p>
+            <button
+              type="button"
+              className="btn mint"
+              style={{ width: "100%" }}
+              disabled={!!busy}
+              onClick={() => void handleProve()}
+            >
+              <Icon name="check" size={15} />{" "}
+              {busy === "prove"
+                ? t("role.proving")
+                : walletConnected
+                ? t("role.prove")
+                : t("role.proveNeedWallet")}
+            </button>
+          </div>
+
           {err && (
             <div className="card" style={{ marginTop: 12, padding: "10px 12px", background: "var(--red-l)", borderColor: "rgba(251,113,133,0.4)", color: "var(--red)", fontSize: 13 }}>
               {err}
@@ -378,6 +434,9 @@ function SignInInner() {
           {session.mode === "near" && session.near && (
             <div className="mono tiny" style={{ marginTop: 14, padding: 10, borderRadius: 10, background: "var(--mint-l)", border: "1px solid var(--border-glow)", color: "var(--mint)", textAlign: "center" }}>
               {walletConnected ? `Wallet Connected (${walletId})` : "RPC Connected"}: <b>{session.near.accountId}</b> ({session.near.balanceNear} NEAR)
+              {session.near.signatureVerified === false && (
+                <span style={{ color: "#fbbf24" }}> · {t("role.unverified")}</span>
+              )}
             </div>
           )}
 

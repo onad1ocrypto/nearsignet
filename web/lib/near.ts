@@ -90,6 +90,28 @@ export function demoDepositNear(usd: number): number {
 }
 
 /**
+ * Which side of the escrow is this person on — decided by the CONTRACT, not by the UI.
+ *
+ *   client.address === escrow.client         -> client (payer)
+ *   client.address === escrow.freelancer     -> freelancer (worker)
+ *   anything else                            -> nobody (cannot deliver, cannot release)
+ *
+ * `verified` means the account proved ownership with a NEP-413 signature; an
+ * unproven session gets no privileges at all.
+ */
+export function escrowSide(
+  escrow: { client?: string; freelancer?: string } | null | undefined,
+  account: string | undefined,
+  verified: boolean
+): "client" | "freelancer" | "nobody" {
+  if (!verified || !account) return "nobody";
+  const acct = account.toLowerCase();
+  if (escrow?.client && acct === escrow.client.toLowerCase()) return "client";
+  if (escrow?.freelancer && acct === escrow.freelancer.toLowerCase()) return "freelancer";
+  return "nobody";
+}
+
+/**
  * Who is looking at this escrow? The payer (client) locks the money and approves
  * the release; the freelancer does the work. On a funded escrow the payer provably
  * differs from the freelancer, so a guest is treated as the worker — otherwise the

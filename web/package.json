@@ -2,7 +2,7 @@
   "name": "nearsignet-web",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "NearSignet Next.js 16 web application — AI-verified freelance escrow on NEAR Protocol",
+  "description": "NearSignet Next.js 16 web application \u2014 AI-verified freelance escrow on NEAR Protocol",
   "repository": {
     "type": "git",
     "url": "https://github.com/onad1ocrypto/nearsignet.git",
@@ -16,9 +16,10 @@
     "test:i18n": "node scripts/check-i18n.cjs",
     "test:media": "mkdir -p /tmp/nsg-verify && ./node_modules/.bin/tsc lib/verify.ts lib/data.ts --module commonjs --target es2022 --outDir /tmp/nsg-verify && cp scripts/verify-media.test.cjs /tmp/nsg-verify/ && node /tmp/nsg-verify/verify-media.test.cjs",
     "test:rpc": "node scripts/near-rpc.test.cjs",
-    "test": "npm run test:i18n && npm run test:media && npm run test:orin && npm run test:wallet && npm run test:rpc",
+    "test": "npm run test:i18n && npm run test:media && npm run test:orin && npm run test:wallet && npm run test:nep413 && npm run test:rpc",
     "test:orin": "node scripts/check-orin.cjs",
-    "test:wallet": "node scripts/check-wallet.cjs && node scripts/check-wallet-tx.cjs"
+    "test:wallet": "node scripts/check-wallet.cjs && node scripts/check-wallet-tx.cjs",
+    "test:nep413": "node scripts/check-nep413.cjs"
   },
   "dependencies": {
     "@near-wallet-selector/core": "^10.1.4",

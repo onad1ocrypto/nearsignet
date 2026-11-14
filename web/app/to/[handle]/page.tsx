@@ -56,6 +56,7 @@ export default function PublicOrderPage() {
       name: name.trim(),
       email: email.trim(),
       nearAccount: nearClient.trim() || undefined,
+      freelancerAccount: shown.nearAccount,
       brief: brief.trim(),
       title,
       budget: Number(budget),

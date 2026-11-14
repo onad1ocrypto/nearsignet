@@ -2,6 +2,15 @@ export type Lang = "en" | "zh" | "id";
 
 /* English is the primary dictionary. Missing keys in zh/id fall back to English. */
 const en: Record<string, string> = {
+  "role.nobody": "Not your escrow",
+  "role.nobodyNote": "This escrow belongs to another pair of accounts (worker: {freelancer}). You can read it, but delivering and releasing are reserved for the two accounts on chain — that is what stops anyone from taking someone else's job.",
+  "role.proveShort": "Prove ownership to act",
+  "role.provenAs": "verified {acct}",
+  "role.prove": "Sign in with this wallet (prove ownership)",
+  "role.proveNeedWallet": "Connect Meteor or Nightly, then prove ownership",
+  "role.proving": "Waiting for the wallet signature…",
+  "role.proveBody": "Your wallet signs a short message — no transaction, no gas, no funds move. The signature is checked against your account's live on-chain key, so no one can claim an account id that is not theirs.",
+  "role.unverified": "unverified claim — sign in with the wallet to prove it",
   "role.asClient": "View as client",
   "role.asFreelancer": "View as freelancer",
   "role.auto": "Auto",
@@ -708,6 +717,15 @@ const en: Record<string, string> = {
 };
 
 const zh: Record<string, string> = {
+  "role.nobody": "不是你的托管",
+  "role.nobodyNote": "该托管属于另一组账户（接单方：{freelancer}）。你可以查看，但交付和放款只保留给链上的这两个账户 — 这就是别人无法抢走工作的原因。",
+  "role.proveShort": "先证明所有权再操作",
+  "role.provenAs": "已验证 {acct}",
+  "role.prove": "用此钱包登录（证明所有权）",
+  "role.proveNeedWallet": "先连接 Meteor 或 Nightly，然后证明所有权",
+  "role.proving": "等待钱包签名…",
+  "role.proveBody": "钱包会签一条简短消息 — 不发起交易、不消耗 gas、不转移资金。签名会与该账户的链上有效密钥核对，因此没人能冒用不属于自己的账户。",
+  "role.unverified": "未验证的声明 — 用钱包登录以证明",
   "role.asClient": "以客户身份查看",
   "role.asFreelancer": "以自由职业者身份查看",
   "role.auto": "自动",
@@ -1414,6 +1432,15 @@ const zh: Record<string, string> = {
 };
 
 const id: Record<string, string> = {
+  "role.nobody": "Bukan escrow kamu",
+  "role.nobodyNote": "Escrow ini milik pasangan akun lain (pekerja: {freelancer}). Kamu bisa membacanya, tapi mengirim hasil kerja dan mencairkan dana hanya untuk dua akun yang tercatat di on-chain — inilah yang mencegah orang lain mengambil kerjaan orang.",
+  "role.proveShort": "Buktikan kepemilikan dulu",
+  "role.provenAs": "terverifikasi {acct}",
+  "role.prove": "Masuk dengan wallet ini (buktikan kepemilikan)",
+  "role.proveNeedWallet": "Sambungkan Meteor atau Nightly, lalu buktikan kepemilikan",
+  "role.proving": "Menunggu tanda tangan wallet…",
+  "role.proveBody": "Wallet-mu menandatangani pesan singkat — bukan transaksi, tanpa gas, tanpa dana berpindah. Tanda tangannya dicek ke kunci aktif akunmu di on-chain, jadi tidak ada yang bisa mengaku sebagai akun orang lain.",
+  "role.unverified": "klaim belum terverifikasi — masuk dengan wallet untuk membuktikannya",
   "role.asClient": "Lihat sebagai klien",
   "role.asFreelancer": "Lihat sebagai freelancer",
   "role.auto": "Otomatis",

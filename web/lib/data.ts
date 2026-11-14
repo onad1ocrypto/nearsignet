@@ -4,7 +4,7 @@
    `nearsignet-protocol.testnet` (NEAR Testnet).
    ========================================================= */
 
-import { demoDepositNear } from "./near";
+import { demoDepositNear, NEAR_FREELANCER_DEFAULT } from "./near";
 
 export type Direction = "from_client" | "to_client" | "by_me";
 export type Status =
@@ -38,6 +38,11 @@ export interface Order {
   client: Person;
   amount: number;      // USD reference value
   nearAmount?: number | string;  // Native NEAR locked in escrow
+  /**
+   * Who the escrow pays. Recorded at funding time and copied from the CONTRACT
+   * (rec.freelancer), never from the UI — it is what decides who may deliver.
+   */
+  freelancerAccount?: string;
   currency?: string;
   due: string;
   created?: string;
@@ -55,6 +60,24 @@ export interface Order {
 }
 
 export type ProductKind = "bottle" | "mug" | "shoe" | "bag" | "candle" | "watch" | "plant" | "cap" | "reel";
+
+/**
+ * The worker side of an escrow.
+ *
+ * `/to/<handle>` orders carry the freelancer the client actually hired, so that
+ * account is written into the contract and it alone may deliver. Everything else
+ * (own briefs, demo seeds) pays the platform relayer, because the contract rejects
+ * an escrow whose client and freelancer are the same account.
+ */
+export function freelancerFor(order: { freelancerAccount?: string; client?: { nearAccount?: string } }): {
+  accountId: string;
+  named: boolean;
+} {
+  const named = String(order.freelancerAccount || "").trim().toLowerCase();
+  const client = String(order.client?.nearAccount || "").trim().toLowerCase();
+  if (named && named !== client) return { accountId: named, named: true };
+  return { accountId: NEAR_FREELANCER_DEFAULT, named: false };
+}
 
 export const ME: Person = {
   name: "Sasam",
@@ -150,6 +173,7 @@ const demoFromJob = (job: (typeof DEMO_JOBS)[number], i: number): Order => {
     client: { ...client },
     amount: job.amount,
     nearAmount: demoDepositNear(job.amount),
+    freelancerAccount: ME.nearAccount,
     currency: "USD",
     due,
     created: new Date(Date.now() - (i + 1) * 86_400_000).toISOString().slice(0, 10),

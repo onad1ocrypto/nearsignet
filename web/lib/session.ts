@@ -14,6 +14,8 @@ export interface NearIdentity {
   network: string;
   balanceNear: string;
   verifiedOnChain: boolean;
+  /** True only when a NEP-413 signature from this account's live key was checked. */
+  signatureVerified?: boolean;
 }
 
 export interface SessionPayload {
