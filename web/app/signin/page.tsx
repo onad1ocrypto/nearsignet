@@ -19,9 +19,12 @@ function SignInInner() {
   const next = sp.get("next") || "/dashboard";
 
   const [accountId, setAccountId] = useState("raka.nearsignet-protocol.testnet");
-  const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc">("");
+  const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc" | "faucet">("");
   const [err, setErr] = useState("");
   const [showRpc, setShowRpc] = useState(false);
+  const [showFaucet, setShowFaucet] = useState(false);
+  const [faucetAddr, setFaucetAddr] = useState("");
+  const [faucetRes, setFaucetRes] = useState<{ msg: string; txUrl?: string } | null>(null);
 
   // If user returned from a wallet callback redirect and is now wallet-authenticated, forward cleanly
   useEffect(() => {
@@ -61,6 +64,49 @@ function SignInInner() {
       return;
     }
     router.push(next);
+  };
+
+  const handleClaimFaucet = async () => {
+    const target = faucetAddr.trim().toLowerCase();
+    if (!target) return;
+    setBusy("faucet");
+    setErr("");
+    setFaucetRes(null);
+    try {
+      const r = await fetch("/api/near/faucet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId: target }),
+      });
+      const j = (await r.json()) as {
+        ok?: boolean;
+        alreadyFunded?: boolean;
+        amountNear?: string;
+        balanceNear?: string;
+        explorerUrl?: string;
+        message?: string;
+        error?: string;
+      };
+      setBusy("");
+      if (!r.ok || !j.ok) {
+        setErr(j.error || "Could not send Testnet NEAR");
+        return;
+      }
+      if (j.alreadyFunded) {
+        setFaucetRes({ msg: j.message || `Account already has ${j.balanceNear} NEAR` });
+      } else {
+        setFaucetRes({
+          msg:
+            lang === "id"
+              ? `✓ ${j.amountNear} NEAR Testnet berhasil dikirim ke ${target}! Silakan klik Connect Meteor Wallet.`
+              : `✓ Sent ${j.amountNear} Testnet NEAR to ${target}! Now click Connect Meteor Wallet.`,
+          txUrl: j.explorerUrl,
+        });
+      }
+    } catch (e) {
+      setBusy("");
+      setErr(e instanceof Error ? e.message : "Network error");
+    }
   };
 
   const meteorHint =
@@ -172,24 +218,86 @@ function SignInInner() {
               className="tiny"
               style={{
                 marginTop: 10,
-                padding: "8px 10px",
+                padding: "9px 11px",
                 borderRadius: 9,
                 background: "rgba(253,224,71,0.06)",
                 border: "1px solid rgba(253,224,71,0.22)",
                 color: "var(--fg-muted)",
-                lineHeight: 1.48,
+                lineHeight: 1.5,
               }}
             >
-              {meteorHint}{" "}
-              <a
-                href="https://docs.near.org/faucet"
-                target="_blank"
-                rel="noreferrer"
-                className="mono"
-                style={{ color: "#fde047", textDecoration: "underline" }}
-              >
-                Testnet Faucet ↗
-              </a>
+              <div>
+                {meteorHint}{" "}
+                <button
+                  type="button"
+                  className="mono"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    cursor: "pointer",
+                    color: "#00EC97",
+                    fontWeight: 700,
+                    textDecoration: "underline",
+                    fontSize: "inherit",
+                  }}
+                  onClick={() => setShowFaucet((v) => !v)}
+                >
+                  {lang === "id" ? "⚡ Klaim 1.5 NEAR Instan" : "⚡ Instant 1.5 NEAR Faucet"}
+                </button>
+                {" · "}
+                <a
+                  href="https://near-faucet.io"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mono"
+                  style={{ color: "#fde047", textDecoration: "underline" }}
+                >
+                  near-faucet.io ↗
+                </a>
+                {" · "}
+                <a
+                  href="https://docs.near.org/getting-started/faucet"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mono"
+                  style={{ color: "#fde047", textDecoration: "underline" }}
+                >
+                  NEAR Docs Faucet ↗
+                </a>
+              </div>
+
+              {showFaucet && (
+                <div className="col" style={{ gap: 6, marginTop: 8, paddingTop: 8, borderTop: "1px solid rgba(253,224,71,0.18)" }}>
+                  <div className="row" style={{ gap: 6 }}>
+                    <input
+                      className="input mono"
+                      style={{ height: 34, fontSize: 12 }}
+                      value={faucetAddr}
+                      onChange={(e) => setFaucetAddr(e.target.value)}
+                      placeholder={lang === "id" ? "nama-wallet.testnet atau 64-hex dari Meteor" : "your-wallet.testnet or 64-hex address"}
+                    />
+                    <button
+                      type="button"
+                      className="btn sm mint"
+                      disabled={!!busy || !faucetAddr.trim()}
+                      onClick={() => void handleClaimFaucet()}
+                    >
+                      {busy === "faucet" ? "Sending…" : "Send 1.5 NEAR"}
+                    </button>
+                  </div>
+                  {faucetRes && (
+                    <div className="mono tiny" style={{ color: "var(--mint)" }}>
+                      {faucetRes.msg}{" "}
+                      {faucetRes.txUrl && (
+                        <a href={faucetRes.txUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>
+                          NearBlocks Tx ↗
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
