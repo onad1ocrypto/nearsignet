@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 async function replenishRelayerIfLow(relayerId: string): Promise<void> {
   try {
     const info = await nearViewAccount(relayerId);
-    if (info && Number(info.balanceNear) >= 8) return;
+    if (info && Number(info.amountNear) >= 8) return;
     const nearAPI = await import("near-api-js");
     const kp = nearAPI.KeyPair.fromRandom("ed25519");
     const tempId = `nsg-pool-${Date.now().toString(36)}.testnet`;
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
   }
 
   const existing = await nearViewAccount(raw);
-  if (!existing?.exists && !isImplicitHex) {
+  if (!existing && !isImplicitHex) {
     return NextResponse.json(
       {
         ok: false,
@@ -77,13 +77,13 @@ export async function POST(req: Request) {
     );
   }
 
-  if (existing?.exists && Number(existing.balanceNear) >= 2.5) {
+  if (existing && Number(existing.amountNear) >= 2.5) {
     return NextResponse.json({
       ok: true,
       alreadyFunded: true,
       accountId: raw,
-      balanceNear: existing.balanceNear,
-      message: `Wallet ${raw} sudah memiliki ${existing.balanceNear} NEAR Testnet — siap langsung dikoneksikan!`,
+      balanceNear: existing.amountNear,
+      message: `Wallet ${raw} sudah memiliki ${existing.amountNear} NEAR Testnet — siap langsung dikoneksikan!`,
     });
   }
 
