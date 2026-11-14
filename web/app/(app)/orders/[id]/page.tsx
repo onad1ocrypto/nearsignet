@@ -582,6 +582,17 @@ function OrderDetailInner() {
 
       <div className="od-grid od-grid-single">
         <div className="col" style={{ gap: 20 }}>
+          {/* A sealed escrow leads with its certificate, not with the client brief. */}
+          {status === "paid" && (
+            <SealedCertificatePanel
+              order={order}
+              slam={justSealed}
+              txHash={txHash || order.txHash || order.txHashes?.release || ""}
+              sealCode={sealCode}
+              mediationSplit={mediationSplit}
+            />
+          )}
+
           {status === "request" && !(proven && side === "client") && (
             <RequestPanel
               order={order}
@@ -738,16 +749,6 @@ function OrderDetailInner() {
             />
           )}
 
-          {status === "paid" && (
-            <SealedCertificatePanel
-              order={order}
-              slam={justSealed}
-              txHash={txHash || order.txHash || order.txHashes?.release || ""}
-              sealCode={sealCode}
-              mediationSplit={mediationSplit}
-            />
-          )}
-
           {(status === "review" || status === "paid") && (
             <MediatorPanel
               order={order}
@@ -804,7 +805,7 @@ function OrderDetailInner() {
                 }}
               >
                 <span className="mono tiny" style={{ color: "#fbbf24", fontWeight: 700, letterSpacing: "0.05em" }}>
-                  ★ DELIVERABLE VISUAL SAMPLE · CONTOH HASIL TUGAS NYATA
+                  ★ DELIVERABLE SAMPLE · REAL VERIFIED RESULT
                 </span>
                 <span className="mono tiny" style={{ color: "var(--mint)" }}>
                   {t("od.verifiedAgainst", { n: order.criteria.length })}

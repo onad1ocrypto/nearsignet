@@ -200,7 +200,7 @@ export const ORDERS: Order[] = [
     client: { name: "Liam Carter", nearAccount: "liam-client.testnet", initials: "LC", city: "Toronto", country: "CA", color: "var(--sky-l)" },
     amount: 150, nearAmount: demoDepositNear(150), currency: "USD", due: "2026-11-16", created: "2026-11-04",
     status: "in_escrow",
-    brief: "Hey Sasam! Need 20 clean studio renders of our trail sneaker for our storefront launch. Pure white background, at least 2000px on the long edge, JPG format. Budget is $150 (30 NEAR locked in escrow).",
+    brief: "Hey Sasam! Need 20 clean studio renders of our trail sneaker for our storefront launch. Pure white background, at least 2000px on the long edge, JPG format. Budget is $150 (0.10 NEAR locked in escrow).",
     criteria: [
       { label: "Exactly 20 files", rule: "count(files) == 20", icon: "file" },
       { label: "JPG format", rule: "mime == image/jpeg", icon: "image" },
