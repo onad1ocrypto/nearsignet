@@ -160,7 +160,7 @@ function SignInInner() {
               <span className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>
                 ● SIGN WITH REAL NEAR TESTNET WALLET
               </span>
-              <span className="badge mono" style={{ fontSize: 10.5 }}>CLIENT-SIDE ED25519</span>
+              <span className="badge mono" style={{ fontSize: 10.5 }}>{t("si.clientSide").toUpperCase()}</span>
             </div>
 
             <div className="col" style={{ gap: 10 }}>
@@ -325,7 +325,7 @@ function SignInInner() {
             <Icon name="bolt" size={17} /> {t("si.guest")}
           </button>
           <p className="tiny muted" style={{ marginTop: 8, textAlign: "center", lineHeight: 1.5 }}>
-            No wallet installed? Broadcasts <b>real signed NEAR Testnet transactions</b> via our funded sandbox relayer (<code className="mono">liam.{NEAR_CONTRACT_ID}</code>) with live NearBlocks Tx links.
+            {t("si.noWallet")} <b>real signed NEAR Testnet transactions</b> (<code className="mono">liam.{NEAR_CONTRACT_ID}</code>).
           </p>
 
           {/* 3. COLLAPSIBLE RPC ACCOUNT INSPECTOR */}

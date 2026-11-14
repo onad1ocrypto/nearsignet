@@ -59,7 +59,7 @@ export default function DashboardPage() {
         <div className="hero-banner-grid">
           <div className="col" style={{ gap: 10, minWidth: 0 }}>
             <span className="kbd" style={{ color: "var(--mint)" }}>
-              {date(new Date().toISOString(), { weekday: "long", day: "numeric", month: "long", year: "numeric" })} · {me.nearAccount}
+              {t("dash.dateLine", { date: date(new Date().toISOString(), { weekday: "long", day: "numeric", month: "long", year: "numeric" }), acct: me.nearAccount })}
             </span>
             <h1 style={{ fontSize: "clamp(24px, 2.6vw, 33px)" }}>{t("dash.hello", { name: me.name.split(" ")[0] })}</h1>
             <p className="muted" style={{ maxWidth: 600, fontSize: 14.5 }}>{t("dash.sub", { todo: todoOrders.length, esc: 3 })}</p>
@@ -68,7 +68,7 @@ export default function DashboardPage() {
                 <Icon name="send" size={15} /> {t("dash.sendContract")}
               </Link>
               <Link href="/insights" className="btn">
-                <Icon name="shield" size={15} /> Scoped-Key Audit
+                <Icon name="shield" size={15} /> {t("od.scopedAudit")}
               </Link>
             </div>
           </div>
@@ -83,14 +83,14 @@ export default function DashboardPage() {
         <div className="row wrap mono tiny" style={{ gap: 14, minWidth: 0 }}>
           <span className="row" style={{ gap: 7, color: "var(--mint)" }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--mint)", boxShadow: "0 0 8px var(--mint)" }} />
-            <b>NEAR Testnet Active</b>
+            <b>{t("od.testnetActive")}</b>
           </span>
-          <span className="muted">Vault: <a href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer" style={{ color: "var(--ink)", textDecoration: "underline" }}>{NEAR_CONTRACT_ID}</a></span>
-          <span className="muted">Orin Verifier: <b style={{ color: "var(--ink)" }}>{chain?.verifierAccount ?? NEAR_VERIFIER_ID}</b></span>
-          {chain && <span className="muted">On-Chain: <b style={{ color: "#fbbf24" }}>{chain.totalEscrows} escrows ({chain.totalSealed} SEALED)</b></span>}
+          <span className="muted">{t("dash.vaultLabel")} <a href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer" style={{ color: "var(--ink)", textDecoration: "underline" }}>{NEAR_CONTRACT_ID}</a></span>
+          <span className="muted">{t("od.orinVerifier")} <b style={{ color: "var(--ink)" }}>{chain?.verifierAccount ?? NEAR_VERIFIER_ID}</b></span>
+          {chain && <span className="muted"><b style={{ color: "#fbbf24" }}>{t("dash.onchainStat", { n: chain.totalEscrows, sealed: chain.totalSealed })}</b></span>}
         </div>
         <Link href="/orders/NSG-2033" className="mono tiny" style={{ fontWeight: 700, color: "var(--mint)" }}>
-          Inspect On-Chain SEALED Proof (NSG-2033) →
+          {t("od.inspectSeal", { id: "NSG-2033" })} →
         </Link>
       </div>
 

@@ -266,7 +266,7 @@ function OrderDetailInner() {
             <div className="row wrap" style={{ gap: 8 }}>
               <span className="mono tiny muted" style={{ fontWeight: 700 }}>{order.id}</span>
               <span className="badge mono" style={{ borderColor: "var(--border-glow)", color: "var(--mint)" }}>
-                On-Chain ID: {onchainId}
+                {t("od.onchainIdLabel", { id: onchainId })}
               </span>
               <span className="badge">
                 <Icon name={order.direction === "from_client" ? "inbox" : "send"} size={12} />
@@ -300,11 +300,11 @@ function OrderDetailInner() {
         <div className="row wrap" style={{ gap: 8, fontSize: 12.5 }}>
           <span className="mono" style={{ fontWeight: 700, color: walletConnected ? "var(--mint)" : "#fbbf24" }}>
             {walletConnected
-              ? `● REAL WALLET SIGNING (${walletId}: ${session.near?.accountId})`
-              : `● LIVE TESTNET RELAYER ACTIVE (liam.${NEAR_CONTRACT_ID})`}
+              ? `● ${t("od.walletSigning", { wallet: walletId || "wallet", acct: session.near?.accountId || "" })}`
+              : `● ${t("od.relayActive", { acct: `liam.${NEAR_CONTRACT_ID}` })}`}
           </span>
           <span className="muted">
-            — Every escrow lock, Scoped-Key AI verification, and payout broadcasts a real transaction on NEAR Testnet.
+            — {t("od.relayNote")}
           </span>
         </div>
         <div className="row wrap" style={{ gap: 8 }}>
@@ -316,14 +316,14 @@ function OrderDetailInner() {
                 void connectWallet(walletSessionHint() ?? "meteor-wallet", typeof window !== "undefined" ? window.location.href : undefined)
               }
             >
-              <Icon name="wallet" size={13} /> {walletSessionHint() ? "Reconnect Wallet" : "Connect Meteor Wallet"}
+              <Icon name="wallet" size={13} /> {t("si.connectMeteor")}
             </button>
           )}
           {walletConnected && (
             <span
               className="mono tiny"
               style={{ color: walletHealth?.canSign === false ? "#fca5a5" : "var(--mint)", letterSpacing: ".1em" }}
-              title="Live wallet capability probe (re-checked every 4s and on window focus)"
+              title={t("wp.keyProbe")}
             >
               {walletHealth === null
                 ? "KEY PROBE…"
@@ -336,9 +336,9 @@ function OrderDetailInner() {
             type="button"
             className="btn sm"
             onClick={startFreshRun}
-            title="Step 1 — generate a fresh on-chain escrow ID (needed because one order id can only be funded once)"
+            title={t("wp.newRunTip")}
           >
-            <Icon name="refresh" size={13} /> 1 · New On-Chain Run
+            <Icon name="refresh" size={13} /> 1 · {t("wp.newRun")}
           </button>
         </div>
       </div>
@@ -357,25 +357,23 @@ function OrderDetailInner() {
         }}
       >
         <span className="mono tiny" style={{ color: walletConnected ? "var(--mint)" : "#fde047", fontWeight: 700, letterSpacing: ".08em" }}>
-          {walletConnected ? "● WALLET TEST PATH · step 2 of 2" : "● WALLET TEST PATH · step 0 of 2"}
+          {walletConnected
+            ? `● ${t("wp.kicker").toUpperCase()} · 2/2`
+            : `● ${t("wp.kicker").toUpperCase()} · 0/2`}
         </span>
         <span className="tiny muted" style={{ flex: 1, minWidth: 260 }}>
           {walletConnected ? (
             <>
-              Step 1 done — id <b className="mono" style={{ color: "var(--fg)" }}>{onchainId}</b>. Now press{" "}
-              <b style={{ color: "var(--mint)" }}>Sign &amp; Lock</b> in the panel directly below the stepper
-              (only visible while the order is in the <b>Lock NEAR</b> stage).
+              {t("wp.stepDone", { id: onchainId })}
             </>
           ) : (
             <>
-              Press <b>Connect Meteor Wallet</b> (top-right of this strip), then{" "}
-              <b>Sign &amp; Lock</b>. One order id can only be funded once — if a lock was already sent,
-              press <b>1 · New On-Chain Run</b> first.
+              {t("wp.stepStart")}
             </>
           )}
         </span>
         <Link href="/orders/new" className="btn sm mint">
-          <Icon name="plus" size={13} /> Or create a brand-new order
+          <Icon name="plus" size={13} /> {t("wp.newOrder")}
         </Link>
       </div>
 
@@ -566,7 +564,7 @@ function OrderDetailInner() {
                   ★ DELIVERABLE VISUAL SAMPLE · CONTOH HASIL TUGAS NYATA
                 </span>
                 <span className="mono tiny" style={{ color: "var(--mint)" }}>
-                  Verified against {order.criteria.length} objective predicates
+                  {t("od.verifiedAgainst", { n: order.criteria.length })}
                 </span>
               </div>
               <div style={{ position: "relative", aspectRatio: "16 / 8.5", maxHeight: 290, width: "100%", overflow: "hidden", background: "#060911" }}>
@@ -592,20 +590,20 @@ function OrderDetailInner() {
                 {NEAR_CONTRACT_ID} ↗
               </a>
             </div>
-            <div className="kv"><span>On-Chain Order ID</span><b className="mono tiny" style={{ color: "var(--mint)" }}>{onchainId}</b></div>
+            <div className="kv"><span>{t("od.onchainId")}</span><b className="mono tiny" style={{ color: "var(--mint)" }}>{onchainId}</b></div>
             <div className="kv"><span>{t("od.escrowAmt")}</span><b className="mono">{money(order.amount)} ({nearDisplay})</b></div>
             <div className="kv">
               <span>{t("od.protection")}</span>
               <b className="mono">
                 {chainEscrow?.exists && chainEscrow.reviewDeadlineNs && Number(chainEscrow.reviewDeadlineNs) > 0
-                  ? `Ends ${new Date(Number(chainEscrow.reviewDeadlineNs) / 1e6).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} UTC`
+                  ? t("od.shieldEnds", { when: date(new Date(Number(chainEscrow.reviewDeadlineNs) / 1e6).toISOString(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) })
                   : chainEscrow?.exists
-                  ? "Starts after verification passes"
-                  : "Not funded on-chain yet"}
+                  ? t("od.shieldPending")
+                  : t("od.shieldNotFunded")}
               </b>
             </div>
-            <div className="kv"><span>Orin Verifier</span><b className="mono tiny" style={{ color: "#fbbf24" }}>{NEAR_VERIFIER_ID}</b></div>
-            {order.termsHash && <div className="kv"><span>Terms Hash</span><b className="mono tiny">{order.termsHash.slice(0, 18)}…</b></div>}
+            <div className="kv"><span>{t("od.orinVerifierLabel")}</span><b className="mono tiny" style={{ color: "#fbbf24" }}>{NEAR_VERIFIER_ID}</b></div>
+            {order.termsHash && <div className="kv"><span>{t("od.termsHash")}</span><b className="mono tiny">{order.termsHash.slice(0, 18)}…</b></div>}
           </div>
 
           <div className="card pad col" style={{ gap: 10, background: "rgba(5,8,13,0.92)", borderColor: "var(--border-strong)" }}>
@@ -1039,9 +1037,7 @@ function ReviewPanel({
         </button>
       </div>
       <p className="tiny muted" style={{ marginTop: 2 }}>
-        ⓘ Fast-Forward is claimed by the freelancer account, so NearSignet relays it —
-        <strong> no wallet prompt is expected</strong>. Only Approve &amp; Release and
-        Mediation Settlement are signed by your wallet.
+        {t("od.ffNote")}
       </p>
     </div>
   );
@@ -1122,7 +1118,7 @@ function SealedCertificatePanel({
           )}
           {mediationSplit && (
             <div className="row between" style={{ color: "#fb923c" }}>
-              <span>Mediator Split:</span><b>{100 - mediationSplit.percent}% freelancer / {mediationSplit.percent}% refund</b>
+              <span>{t("od.mediatorSplit")}</span><b>{100 - mediationSplit.percent}% freelancer / {mediationSplit.percent}% refund</b>
             </div>
           )}
         </div>

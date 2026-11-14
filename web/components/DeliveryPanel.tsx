@@ -670,7 +670,7 @@ export function DeliveryPanel({
 
             {evidenceHash && (
               <div className="mono tiny" style={{ padding: "8px 11px", borderRadius: 10, border: "1px solid var(--border-glow)", background: "rgba(0,236,151,0.06)", wordBreak: "break-all" }}>
-                <b style={{ color: "var(--mint)" }}>SHA-256 Evidence Hash:</b><br />
+                <b style={{ color: "var(--mint)" }}>{t("od.shaEvidence")}</b><br />
                 {evidenceHash}
               </div>
             )}
@@ -704,7 +704,7 @@ export function DeliveryPanel({
               <div className="note pop-in">
                 <div className="row" style={{ gap: 10 }}>
                   <Orin size={46} pose="scan" glow={false} />
-                  <b>Orin Inspector Flagged Defect</b>
+                  <b>{t("od.flagTitle")}</b>
                 </div>
                 <p className="muted" style={{ margin: "6px 0 10px", fontSize: 13.5 }}>
                   {notes.filter(Boolean).find((_, i) => checks[i] === "fail") ?? t("dl.agentMsg")}
@@ -722,7 +722,7 @@ export function DeliveryPanel({
                         await take(list, "sample");
                       }}
                     >
-                      <Icon name="check" size={14} /> Fix #14 & Re-upload Clean Set
+                      <Icon name="check" size={14} /> {t("od.fixReupload", { n: 14 })}
                     </button>
                   )}
                 </div>

@@ -68,16 +68,16 @@ export default function InsightsPage() {
     <div className="col" style={{ gap: 22 }}>
       <div className="row between wrap" style={{ gap: 12 }}>
         <div>
-          <Kicker>LIVE NEAR PROTOCOL TELEMETRY</Kicker>
-          <h1 style={{ fontSize: 30, marginTop: 8 }}>{t("nav.insights")} & Scoped-Key Security Audit</h1>
-          <p className="muted">Direct JSON-RPC inspection of `{NEAR_CONTRACT_ID}` and Orin (`{NEAR_VERIFIER_ID}`) on NEAR Testnet.</p>
+          <Kicker>{(t("od.liveTelemetry") || "").toUpperCase()}</Kicker>
+          <h1 style={{ fontSize: 30, marginTop: 8 }}>{t("nav.insights")} · {t("od.insightsTitle")}</h1>
+          <p className="muted">{t("od.rpcIntro", { contract: NEAR_CONTRACT_ID, verifier: NEAR_VERIFIER_ID })}</p>
         </div>
         <div className="row wrap" style={{ gap: 8 }}>
           <button className="btn sm mint" onClick={refreshChain} disabled={loading}>
-            <Icon name="refresh" size={14} /> {loading ? "Querying RPC…" : "Refresh Live RPC"}
+            <Icon name="refresh" size={14} /> {loading ? t("od.queryingRpc") : t("od.refreshRpc")}
           </button>
           <a href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer" className="btn sm">
-            NearBlocks Explorer ↗
+            {t("od.nearblocks")} ↗
           </a>
         </div>
       </div>
@@ -88,37 +88,37 @@ export default function InsightsPage() {
           <div className="row" style={{ gap: 14 }}>
             <Orin pose="scan" size={68} />
             <div>
-              <div className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>ON-CHAIN AI SPENDING FIREWALL (LIVE RPC PROOF)</div>
+              <div className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>{(t("od.firewall") || "").toUpperCase()}</div>
               <h2 style={{ fontSize: 20, marginTop: 2 }}>Orin Scoped Function-Call Key on `{NEAR_CONTRACT_ID}`</h2>
             </div>
           </div>
           <span className="badge mono st-paid">
-            {scopedKey ? "FUNCTION-CALL SCOPED · VERIFIED ✓" : "RPC ACTIVE"}
+            {(scopedKey ? t("od.scopedOk") : t("od.rpcActive")).toUpperCase()}
           </span>
         </div>
 
         {scopedKey && scopedKey.permission !== "FullAccess" ? (
           <div className="key-grid mono">
             <div className="key-cell">
-              <span>Public Key</span>
+              <span>{t("od.publicKey")}</span>
               <b>{scopedKey.publicKey.slice(0, 28)}…</b>
             </div>
             <div className="key-cell">
-              <span>Receiver Contract</span>
+              <span>{t("od.receiver")}</span>
               <b>{scopedKey.permission.receiverId}</b>
             </div>
             <div className="key-cell">
-              <span>Allowed Methods ONLY</span>
+              <span>{t("od.allowedOnly")}</span>
               <b style={{ color: "var(--mint)" }}>{scopedKey.permission.methodNames.join(", ")}</b>
             </div>
             <div className="key-cell">
-              <span>Gas Allowance Cap</span>
-              <b style={{ color: "#fbbf24" }}>{scopedKey.permission.allowanceNear} NEAR (0 Vault Transfer Power)</b>
+              <span>{t("od.gasCap")}</span>
+              <b style={{ color: "#fbbf24" }}>{t("od.transferPower", { near: scopedKey.permission.allowanceNear, power: "0" })}</b>
             </div>
           </div>
         ) : (
           <div className="mono tiny muted">
-            {loading ? "Fetching access_key_list from https://rpc.testnet.near.org…" : "Scoped FunctionCall key [submit_verification, propose_mediation] verified."}
+            {loading ? t("od.keyFetching", { rpc: "rpc.testnet.near.org" }) : t("od.keyVerified", { methods: "submit_verification, propose_mediation" })}
           </div>
         )}
       </div>
@@ -129,8 +129,8 @@ export default function InsightsPage() {
         <div className="card pad col" style={{ gap: 14 }}>
           <div className="row between">
             <div>
-              <span className="kbd">SETTLEMENT VELOCITY</span>
-              <h3 style={{ fontSize: 19, marginTop: 3 }}>Monthly SEALED Volume (NEAR)</h3>
+              <span className="kbd">{(t("od.velocity") || "").toUpperCase()}</span>
+              <h3 style={{ fontSize: 19, marginTop: 3 }}>{(t("od.monthlyVolume") || "").toUpperCase()}</h3>
             </div>
             <b className="display" style={{ fontSize: 23, color: "var(--mint)" }}>595 NEAR · {money(2975)}</b>
           </div>
@@ -162,8 +162,8 @@ export default function InsightsPage() {
         {/* Cross-Border Corridors */}
         <div className="card pad col" style={{ gap: 14 }}>
           <div>
-            <span className="kbd">CROSS-BORDER CORRIDORS</span>
-            <h3 style={{ fontSize: 19, marginTop: 3 }}>Zero-Wire Settlement Routes</h3>
+            <span className="kbd">{(t("od.corridors") || "").toUpperCase()}</span>
+            <h3 style={{ fontSize: 19, marginTop: 3 }}>{t("od.zeroWire")}</h3>
           </div>
 
           <div className="col" style={{ gap: 13 }}>
@@ -182,10 +182,10 @@ export default function InsightsPage() {
 
           <div style={{ marginTop: "auto", padding: "12px 14px", borderRadius: 12, border: "1px solid rgba(245,158,11,0.35)", background: "rgba(245,158,11,0.07)" }} className="row between">
             <div>
-              <div className="kbd" style={{ color: "#fbbf24" }}>FEE SAVINGS VS LEGACY RAILS</div>
-              <span style={{ fontSize: 13.5, fontWeight: 600 }}>~$0.001 NEAR gas vs 6.4% Legacy Card/Wire FX loss</span>
+              <div className="kbd" style={{ color: "#fbbf24" }}>{(t("od.feeSavings") || "").toUpperCase()}</div>
+              <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t("od.gasCompare")}</span>
             </div>
-            <b className="display" style={{ fontSize: 22, color: "#fbbf24" }}>$748 saved</b>
+            <b className="display" style={{ fontSize: 22, color: "#fbbf24" }}>{t("od.saved", { amount: "$748" })}</b>
           </div>
         </div>
       </div>
@@ -194,12 +194,12 @@ export default function InsightsPage() {
       <div className="card pad col" style={{ gap: 12 }}>
         <div className="row between wrap">
           <div>
-            <span className="kbd">LIVE SMART CONTRACT STATE (`list_escrows`)</span>
-            <h3 style={{ fontSize: 19, marginTop: 3 }}>Anchored Escrows on `{NEAR_CONTRACT_ID}`</h3>
+            <span className="kbd">{t("od.liveState", { method: "list_escrows" }).toUpperCase()}</span>
+            <h3 style={{ fontSize: 19, marginTop: 3 }}>{t("od.anchored", { contract: NEAR_CONTRACT_ID })}</h3>
           </div>
           {stats && (
             <span className="mono badge st-paid">
-              Total: {stats.totalEscrows} · Sealed: {stats.totalSealed}
+              {t("od.totalSealed", { total: stats.totalEscrows, sealed: stats.totalSealed })}
             </span>
           )}
         </div>
@@ -208,13 +208,13 @@ export default function InsightsPage() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }} className="mono">
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border-strong)", textAlign: "left", color: "var(--ink-2)" }}>
-                <th style={{ padding: "9px 10px" }}>Order ID</th>
-                <th style={{ padding: "9px 10px" }}>Client</th>
-                <th style={{ padding: "9px 10px" }}>Freelancer</th>
-                <th style={{ padding: "9px 10px" }}>Amount</th>
-                <th style={{ padding: "9px 10px" }}>Orin Rules</th>
-                <th style={{ padding: "9px 10px" }}>Status / Seal</th>
-                <th style={{ padding: "9px 10px" }}>Proof</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thOrderId")}</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thClient")}</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thFreelancer")}</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thAmount")}</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thRules")}</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thStatus")}</th>
+                <th style={{ padding: "9px 10px" }}>{t("od.thProof")}</th>
               </tr>
             </thead>
             <tbody>

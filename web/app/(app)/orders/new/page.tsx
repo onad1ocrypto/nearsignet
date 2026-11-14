@@ -94,7 +94,7 @@ export default function NewOrderPage() {
                 <input className="input" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
               </div>
               <div className="field">
-                <label>Client NEAR Account</label>
+                <label>{t("od.clientNear")}</label>
                 <input className="input mono" value={clientNear} onChange={(e) => setClientNear(e.target.value)} placeholder="client.testnet" />
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function NewOrderPage() {
 
               <div className="row between wrap" style={{ padding: "14px 18px", borderRadius: 13, border: "1px solid var(--border-glow)", background: "rgba(0,236,151,0.08)" }}>
                 <div>
-                  <div className="kbd" style={{ color: "var(--mint)" }}>ESCROW DEPOSIT ON NEARSIGNET.TESTNET</div>
+                  <div className="kbd" style={{ color: "var(--mint)" }}>{t("od.depositOn")}</div>
                   <b className="display" style={{ fontSize: 23 }}>{money(amount)} · {nearEst} NEAR</b>
                 </div>
                 <button className="btn lg mint" onClick={createContract}>
@@ -175,13 +175,11 @@ export default function NewOrderPage() {
               maxWidth: 520,
             }}
           >
-            NEXT: open the order → press <b style={{ color: "var(--mint)" }}>Sign &amp; Lock</b> to lock{" "}
-            {createdOrder.nearAmount} NEAR with your wallet. If the wallet says the id already exists, press{" "}
-            <b>1 · New On-Chain Run</b> there first.
+            {t("wp.next", { near: String(createdOrder.nearAmount ?? usdToNear(createdOrder.amount)) })}
           </div>
           <div className="row wrap" style={{ gap: 10, marginTop: 8 }}>
             <button className="btn lg mint" onClick={() => router.push(`/orders/${createdOrder.id}`)}>
-              <Icon name="shield" size={17} /> Open &amp; Sign the escrow →
+              <Icon name="shield" size={17} /> {t("wp.openSign")} →
             </button>
             <button className="btn lg" onClick={() => router.push("/orders?tab=by_me")}>
               {t("new.backOrders")}

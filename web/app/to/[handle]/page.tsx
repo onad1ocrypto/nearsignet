@@ -156,7 +156,7 @@ export default function PublicOrderPage() {
           {!sent ? (
             <div className="col" style={{ gap: 16 }}>
               <div>
-                <Kicker amber>NEAR ESCROW INTAKE</Kicker>
+                <Kicker amber>{t("in.kicker").toUpperCase()}</Kicker>
                 <h2 style={{ fontSize: 26, marginTop: 10 }}>{t("pub.formTitle", { name: firstName })}</h2>
                 <p className="muted" style={{ marginTop: 4 }}>{t("pub.formSub")}</p>
               </div>
@@ -173,7 +173,7 @@ export default function PublicOrderPage() {
               </div>
 
               <div className="field">
-                <label>Your NEAR Account (optional — or fund from USDC / ETH via NEAR Intents)</label>
+                <label>{t("in.nearOptional")}</label>
                 <input className="input mono" value={nearClient} onChange={(e) => setNearClient(e.target.value)} placeholder="alex.testnet" />
               </div>
 
@@ -201,7 +201,7 @@ export default function PublicOrderPage() {
                   />
                 </div>
                 <div className="field">
-                  <label>Preferred Settlement Asset (NEAR Intents 1-Click)</label>
+                  <label>{t("in.settlementAsset")}</label>
                   <select className="select" value={payAsset} onChange={(e) => setPayAsset(e.target.value as "NEAR")}>
                     <option value="NEAR">Native NEAR (Ⓝ)</option>
                     <option value="USDC">USDC → NEAR Vault (via Intents)</option>

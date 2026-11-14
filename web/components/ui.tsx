@@ -11,6 +11,7 @@ import { Icon } from "./Icon";
 
 /* ---------------- Brand Lockup (Enlarged & Sharpened 512px 3D Owl Squircle + Clean Geometric Wordmark) ---------------- */
 export function Logo({ href = "/", size = 46 }: { href?: string; size?: number }) {
+  const { t } = useI18n();
   return (
     <Link href={href} className="logo-lockup" aria-label="NearSignet" style={{ display: "inline-flex", alignItems: "center", gap: 13 }}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -32,7 +33,7 @@ export function Logo({ href = "/", size = 46 }: { href?: string; size?: number }
           Near<span style={{ color: "var(--mint)" }}>Signet</span>
         </span>
         <span className="mono" style={{ fontSize: 10, fontWeight: 700, color: "var(--ink-2)", letterSpacing: ".11em" }}>
-          PROTOCOL ESCROW
+          {t("in.protocol").toUpperCase()}
         </span>
       </span>
     </Link>

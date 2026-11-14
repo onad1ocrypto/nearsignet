@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useId, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 import { SEAL_LOGO_DATA_URI } from "@/lib/sealLogoData";
 
 function playHydraulicStampSound() {
@@ -57,6 +58,7 @@ export function SignetSeal({
   interactive?: boolean;
   onStamped?: () => void;
 }) {
+  const { t } = useI18n();
   const uid = useId().replace(/[^a-zA-Z0-9]/g, "");
   const [burstKey, setBurstKey] = useState<number>(slam ? 1 : 0);
   const [stamping, setStamping] = useState<boolean>(slam);
@@ -189,7 +191,7 @@ export function SignetSeal({
           fontFamily="var(--font-mono), monospace"
         >
           <textPath href={`#botArc-${uid}`} startOffset="50%" textAnchor="middle">
-            VERIFIED ON NEAR TESTNET
+            {t("in.verified").toUpperCase()}
           </textPath>
         </text>
 

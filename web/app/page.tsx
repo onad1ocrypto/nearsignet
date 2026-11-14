@@ -56,7 +56,7 @@ export default function LandingPage() {
         <div className="testnet-inner mono">
           <span className="row" style={{ gap: 8 }}>
             <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#00EC97", boxShadow: "0 0 10px #00EC97" }} />
-            <b style={{ color: "#00EC97" }}>NEAR TESTNET LIVE</b>
+            <b style={{ color: "#00EC97" }}>{t("lp2.live").toUpperCase()}</b>
           </span>
           <a href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer" className="strip-link">
             Vault: {NEAR_CONTRACT_ID} ↗
@@ -104,7 +104,7 @@ export default function LandingPage() {
         <div className="col rise" style={{ gap: 22 }}>
           <div className="row wrap" style={{ gap: 8 }}>
             <Kicker><Icon name="shield" size={13} /> {t("lp.kicker")}</Kicker>
-            <Kicker amber>ORIN AI INSPECTOR</Kicker>
+            <Kicker amber>{t("lp2.inspector").toUpperCase()}</Kicker>
           </div>
 
           <h1 className="lp-h1">
@@ -120,7 +120,7 @@ export default function LandingPage() {
 
           <div className="row wrap" style={{ gap: 12, marginTop: 4 }}>
             <button className="btn lg mint" onClick={() => launchJudgeDemo("/orders/NSG-2041")}>
-              <Icon name="shield" size={17} /> Launch Interactive Escrow (NSG-2041)
+              <Icon name="shield" size={17} /> {t("lp2.launch")}
             </button>
             <Link href="/signin" className="btn lg">
               <Icon name="wallet" size={17} /> {t("lp.cta1")}
@@ -132,7 +132,7 @@ export default function LandingPage() {
               <Icon name="lock" size={12} /> Non-Custodial `nearsignet-protocol.testnet`
             </span>
             <span className="badge" style={{ borderColor: "rgba(245,158,11,0.35)", color: "#fbbf24" }}>
-              <Icon name="key" size={12} /> Scoped Function-Call AI Firewall
+              <Icon name="key" size={12} /> {t("lp2.firewallChip")}
             </span>
             <span className="badge">
               <Icon name="clock" size={12} /> 72h `blockTimestamp` Auto-Release
@@ -162,7 +162,7 @@ export default function LandingPage() {
                   <img src="/samples/sneaker-white.jpg" alt="3D Sneaker Render sample" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                 </div>
                 <div className="col" style={{ gap: 3, minWidth: 0 }}>
-                  <span className="kbd" style={{ color: "#fbbf24" }}>AUTONOMOUS ESCROW NOTARY</span>
+                  <span className="kbd" style={{ color: "#fbbf24" }}>{t("lp2.notary").toUpperCase()}</span>
                   <b style={{ fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>3D Sneaker Render Pack · 20 Angles</b>
                   <span className="mono tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>raka.nearsignet-protocol.testnet ← liam-client.testnet</span>
                 </div>
@@ -235,7 +235,7 @@ export default function LandingPage() {
             {stage === 3 && (
               <div className="row between pop-in" style={{ padding: 14, borderRadius: 12, border: "1px solid rgba(0,236,151,0.45)", background: "rgba(7,11,18,0.85)" }}>
                 <div className="col" style={{ gap: 4 }}>
-                  <span className="kbd" style={{ color: "var(--mint)" }}>CRYPTOGRAPHICALLY SEALED</span>
+                  <span className="kbd" style={{ color: "var(--mint)" }}>{t("lp2.sealedBadge").toUpperCase()}</span>
                   <div className="display" style={{ fontSize: 22 }}>30.0 NEAR → raka-studio.testnet</div>
                   <span className="mono tiny" style={{ color: "#fbbf24" }}>seal_id: SEAL-NSG-2033-034003</span>
                 </div>
@@ -246,7 +246,7 @@ export default function LandingPage() {
             <div className="row between" style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border)" }}>
               <span className="mono tiny muted">Orin Cyber-Owl · Zero FullAccess AI Key</span>
               <button className="btn sm mint" onClick={() => launchJudgeDemo("/orders/NSG-2041")}>
-                Open Live Terminal <Icon name="arrow" size={13} />
+                {t("lp2.openTerminal")} <Icon name="arrow" size={13} />
               </button>
             </div>
           </div>
@@ -271,44 +271,44 @@ export default function LandingPage() {
       {/* Bento Architecture Section */}
       <section id="architecture" className="lp-sec">
         <div className="col" style={{ alignItems: "center", textAlign: "center", gap: 10, marginBottom: 34 }}>
-          <Kicker amber>NEAR PROTOCOL ARCHITECTURE</Kicker>
-          <h2 style={{ fontSize: "clamp(28px, 3.5vw, 42px)" }}>Engineered for Autonomous Cross-Border Settlement</h2>
+          <Kicker amber>{t("lp2.archKicker").toUpperCase()}</Kicker>
+          <h2 style={{ fontSize: "clamp(28px, 3.5vw, 42px)" }}>{t("lp2.archH")}</h2>
           <p className="muted" style={{ maxWidth: 640 }}>
-            Every escrow vault, AI verification signature, and timeout guarantee is anchored on NEAR Testnet (`nearsignet-protocol.testnet`).
+            {t("lp2.archSub")}
           </p>
         </div>
 
         <div className="grid-3">
           <div className="card pad lift col" style={{ gap: 10 }}>
             <div className="row between">
-              <Kicker>Real-World Economy</Kicker>
+              <Kicker>{t("lp2.c1k").toUpperCase()}</Kicker>
               <Icon name="globe" size={20} />
             </div>
-            <h3 style={{ fontSize: 21, marginTop: 4 }}>Sub-Cent NEAR Vaults & 72h Auto-Release</h3>
+            <h3 style={{ fontSize: 21, marginTop: 4 }}>{t("lp2.c1h")}</h3>
             <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.6 }}>
-              Eliminates 6–20% legacy corridor fees. Once Orin verifies a delivery, `near.blockTimestamp()` guarantees trustless release after 72 hours even if a client disappears.
+              {t("lp2.c1b")}
             </p>
           </div>
 
           <div className="card pad lift col" style={{ gap: 10, borderColor: "rgba(245,158,11,0.28)" }}>
             <div className="row between">
-              <Kicker amber>Security & FinTech</Kicker>
+              <Kicker amber>{t("lp2.c2k").toUpperCase()}</Kicker>
               <Icon name="key" size={20} />
             </div>
-            <h3 style={{ fontSize: 21, marginTop: 4 }}>Scoped Function-Call Key Firewall</h3>
+            <h3 style={{ fontSize: 21, marginTop: 4 }}>{t("lp2.c2h")}</h3>
             <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.6 }}>
-              Orin signs attestations with an `ed25519` Function-Call key strictly restricted on-chain to `submit_verification` and `propose_mediation` (0.25 NEAR gas cap). Zero `FullAccess` risk.
+              {t("lp2.c2b")}
             </p>
           </div>
 
           <div className="card pad lift col" style={{ gap: 10 }}>
             <div className="row between">
-              <Kicker>AI Agents & Intents</Kicker>
+              <Kicker>{t("lp2.c3k").toUpperCase()}</Kicker>
               <Icon name="bot" size={20} />
             </div>
-            <h3 style={{ fontSize: 21, marginTop: 4 }}>3 Specialized Agents + NEAR Intents</h3>
+            <h3 style={{ fontSize: 21, marginTop: 4 }}>{t("lp2.c3h")}</h3>
             <p className="muted" style={{ fontSize: 14.5, lineHeight: 1.6 }}>
-              Contract Agent compiles briefs into rules; Orin Verification Agent inspects real pixels, video frames & WebAudio dBFS; Mediator Agent computes proportional NEAR splits; Intents quotes `USDC`/`ETH` → `NEAR`.
+              {t("lp2.c3b")}
             </p>
           </div>
         </div>
