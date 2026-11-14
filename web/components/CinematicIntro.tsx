@@ -2,7 +2,18 @@
 
 import { usePathname } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { useI18n } from "@/lib/i18n";
+
+/**
+ * Opening cinematic copy is intentionally ENGLISH-ONLY (never localized).
+ * The trailer itself is wordless footage (emblem -> Orin scan -> SEALED), so the
+ * cinema overlay must read as an international film title card for judges/demo.
+ */
+const CINEMA = {
+  act1: "INITIALIZING CRYPTOGRAPHIC ESCROW VAULT",
+  act2: "ORIN CYBER-INSPECTOR · SCOPED AI KEY ACTIVE",
+  act3: "AI-VERIFIED FREELANCE PROTOCOL ON NEAR",
+  skip: "Skip Intro",
+} as const;
 
 interface IntroCtx {
   replayIntro: () => void;
@@ -56,7 +67,6 @@ export function CinematicIntroProvider({ children }: { children: ReactNode }) {
 }
 
 function CinematicVideoPlayer({ closing, onFinish }: { closing: boolean; onFinish: () => void }) {
-  const { t } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [pct, setPct] = useState(0);
   const [act, setAct] = useState<1 | 2 | 3>(1);
@@ -88,8 +98,7 @@ function CinematicVideoPlayer({ closing, onFinish }: { closing: boolean; onFinis
     else setAct(3);
   };
 
-  const subtitle =
-    act === 1 ? t("intro.act1") : act === 2 ? t("intro.act2") : t("intro.act3");
+  const subtitle = act === 1 ? CINEMA.act1 : act === 2 ? CINEMA.act2 : CINEMA.act3;
 
   return (
     <div className={`cvideo-root ${closing ? "cvideo-closing" : ""}`} role="dialog" aria-label="NearSignet Opening Video">
@@ -118,7 +127,7 @@ function CinematicVideoPlayer({ closing, onFinish }: { closing: boolean; onFinis
           </span>
         </div>
         <button type="button" className="cvideo-skip mono" onClick={onFinish}>
-          {t("intro.skip")} →
+          {CINEMA.skip} →
         </button>
       </div>
 

@@ -5,6 +5,7 @@ import { MeProvider } from "@/lib/me";
 import { ThemeProvider } from "@/lib/theme";
 import { GoldenAtmosphere } from "@/components/GoldenAtmosphere";
 import { CinematicIntroProvider } from "@/components/CinematicIntro";
+import { OrinChat } from "@/components/OrinChat";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -58,6 +59,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <I18nProvider>
               <GoldenAtmosphere />
               <CinematicIntroProvider>{children}</CinematicIntroProvider>
+              <OrinChat />
             </I18nProvider>
           </MeProvider>
         </ThemeProvider>
