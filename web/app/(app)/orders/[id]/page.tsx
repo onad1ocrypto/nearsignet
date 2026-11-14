@@ -18,7 +18,7 @@ import {
   nearToYocto,
   usdToNear,
 } from "@/lib/near";
-import { signNearWalletCall } from "@/lib/wallet";
+import { signNearWalletCall, walletCapabilities, walletSessionHint } from "@/lib/wallet";
 import { MoneyRail } from "@/components/MoneyRail";
 import { Orin } from "@/components/Orin";
 import { SignetSeal } from "@/components/SignetSeal";
@@ -26,6 +26,22 @@ import { Icon } from "@/components/Icon";
 import { CriteriaList } from "@/components/DraftContract";
 import { DeliveryPanel, type Log } from "@/components/DeliveryPanel";
 import { Avatar, Confetti, Country, SAMPLE_IMAGE_BY_KIND, StatusBadge, Toast } from "@/components/ui";
+
+/** Turn raw near-api-js / wallet-selector errors into an operator-readable line. */
+function walletFailure(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e ?? "Unknown wallet error");
+  const m = raw.toLowerCase();
+  if (m.includes("no ne") && m.includes("wallet")) return "WALLET_SESSION_MISSING — session expired. Reconnect your wallet, then retry.";
+  if (m.includes("user rejected") || m.includes("denied") || m.includes("cancelled") || m.includes("canceled"))
+    return "REJECTED_IN_WALLET — you declined the signature request.";
+  if (m.includes("does not have permission") || m.includes("access key") || m.includes("not allowed") || m.includes("method name"))
+    return "KEY_SCOPE_MISMATCH — the wallet key is not authorised for this method. Reconnect the wallet to re-issue a scoped key.";
+  if (m.includes("insufficient") || m.includes("not enough balance") || m.includes("lack"))
+    return "INSUFFICIENT_BALANCE — top up Testnet NEAR from the in-app faucet, then retry.";
+  if (m.includes("timeout") || m.includes("network") || m.includes("fetch"))
+    return "RPC_TIMEOUT — wallet did not answer in time. The request may still be pending in the wallet; check before retrying.";
+  return raw.slice(0, 220);
+}
 
 const TIMELINE: Status[][] = [["request"], ["awaiting_payment"], ["in_escrow"], ["verifying", "revision", "review"], ["paid"]];
 
@@ -105,6 +121,17 @@ function OrderDetailInner() {
   const { walletConnected, walletId, session, connectWallet } = useMe();
   const [status, setStatus] = useState<Status>(order.status);
   useEffect(() => { setStatus(order.status); }, [order]);
+
+  const [walletHealth, setWalletHealth] = useState<{ walletId: string | null; canSign: boolean; hasSession: boolean } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const probe = () => void walletCapabilities().then((c) => { if (alive) setWalletHealth(c); });
+    probe();
+    const t = setInterval(probe, 4000);
+    const onFocus = () => probe();
+    window.addEventListener("focus", onFocus);
+    return () => { alive = false; clearInterval(t); window.removeEventListener("focus", onFocus); };
+  }, [walletConnected]);
 
   const [logs, setLogs] = useState<Log[]>(() => seedLogs(order, onchainId));
   useEffect(() => { setLogs(seedLogs(order, onchainId)); }, [order, onchainId]);
@@ -231,10 +258,25 @@ function OrderDetailInner() {
             <button
               type="button"
               className="btn sm mint"
-              onClick={() => void connectWallet("meteor-wallet", typeof window !== "undefined" ? window.location.href : undefined)}
+              onClick={() =>
+                void connectWallet(walletSessionHint() ?? "meteor-wallet", typeof window !== "undefined" ? window.location.href : undefined)
+              }
             >
-              <Icon name="wallet" size={13} /> Connect Meteor Wallet
+              <Icon name="wallet" size={13} /> {walletSessionHint() ? "Reconnect Wallet" : "Connect Meteor Wallet"}
             </button>
+          )}
+          {walletConnected && (
+            <span
+              className="mono tiny"
+              style={{ color: walletHealth?.canSign === false ? "#fca5a5" : "var(--mint)", letterSpacing: ".1em" }}
+              title="Live wallet capability probe (re-checked every 4s and on window focus)"
+            >
+              {walletHealth === null
+                ? "KEY PROBE…"
+                : walletHealth.canSign
+                ? "SCOPED KEY READY ✓"
+                : "KEY CANNOT SIGN — RECONNECT"}
+            </span>
           )}
           <button type="button" className="btn sm" onClick={startFreshRun} title="Generate a fresh on-chain escrow ID to test the full lifecycle again">
             <Icon name="refresh" size={13} /> New On-Chain Run
@@ -643,12 +685,7 @@ function NearDepositPanel({
       });
       onFunded(d.txHash);
     } catch (e) {
-      log({
-        who: "wallet",
-        msg: "fund_escrow cancelled or failed",
-        res: e instanceof Error ? e.message : "error",
-        kind: "err",
-      });
+      log({ who: "wallet", msg: "create_and_fund_escrow failed", res: walletFailure(e), kind: "err" });
     } finally {
       setBusy(false);
     }
@@ -774,12 +811,7 @@ function ReviewPanel({
       });
       onReleased(d.txHash, d.sealId);
     } catch (e) {
-      log({
-        who: NEAR_CONTRACT_ID,
-        msg: "release_failed",
-        res: e instanceof Error ? e.message : "Transaction rejected",
-        kind: "err",
-      });
+      log({ who: NEAR_CONTRACT_ID, msg: "approve_and_release failed", res: walletFailure(e), kind: "err" });
     } finally {
       setBusy("");
     }

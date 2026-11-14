@@ -8,10 +8,18 @@ import { createHash } from "node:crypto";
 
 export const NEAR_NETWORK_ID =
   process.env.NEXT_PUBLIC_NEAR_NETWORK_ID || process.env.NEXT_PUBLIC_NEAR_NETWORK || "testnet";
+/* `rpc.testnet.near.org` returned -429 DEPRECATED in Nov 2026, so the default is the
+   FastNEAR public endpoint (same JSON-RPC contract) with automatic failover below. */
 export const NEAR_RPC_URL =
   process.env.NEAR_RPC_URL ||
   process.env.NEXT_PUBLIC_NEAR_RPC_URL ||
-  (NEAR_NETWORK_ID === "mainnet" ? "https://rpc.mainnet.near.org" : "https://rpc.testnet.near.org");
+  (NEAR_NETWORK_ID === "mainnet" ? "https://free.rpc.fastnear.com" : "https://rpc.testnet.fastnear.com");
+
+export const NEAR_RPC_FALLBACKS: string[] = (
+  NEAR_NETWORK_ID === "mainnet"
+    ? [NEAR_RPC_URL, "https://rpc.mainnet.fastnear.com", "https://free.rpc.fastnear.com"]
+    : [NEAR_RPC_URL, "https://testnet.rpc.near.org", "https://free.rpc.fastnear.com"]
+).filter((u, i, a) => a.indexOf(u) === i);
 export const NEAR_CONTRACT_ID =
   process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "nearsignet-protocol.testnet";
 export const NEAR_VERIFIER_ID =
@@ -79,11 +87,11 @@ export function yoctoToNear(yocto: string, digits = 2): string {
   }
 }
 
-async function nearRpc<T>(method: string, params: Record<string, unknown>, timeoutMs = 8000): Promise<T> {
+async function nearRpcOnce<T>(url: string, method: string, params: Record<string, unknown>, timeoutMs: number): Promise<T> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   try {
-    const res = await fetch(NEAR_RPC_URL, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: "nearsignet", method, params }),
@@ -98,6 +106,24 @@ async function nearRpc<T>(method: string, params: Record<string, unknown>, timeo
   } finally {
     clearTimeout(timer);
   }
+}
+
+/**
+ * Resilient JSON-RPC with provider failover. The public `rpc.testnet.near.org`
+ * endpoint now answers -429 "DEPRECATED", which silently broke account balance
+ * lookups (and therefore login + fee checks) — so every RPC call walks the
+ * NEAR_RPC_FALLBACKS chain instead of trusting a single host.
+ */
+async function nearRpc<T>(method: string, params: Record<string, unknown>, timeoutMs = 8000): Promise<T> {
+  let lastErr: unknown = null;
+  for (const url of NEAR_RPC_FALLBACKS) {
+    try {
+      return await nearRpcOnce<T>(url, method, params, timeoutMs);
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error(`NEAR RPC ${method} failed on all providers`);
 }
 
 export interface NearAccountView {

@@ -3,15 +3,30 @@ const assert = require("node:assert/strict");
 const CONTRACT_ID = process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "nearsignet-protocol.testnet";
 const VERIFIER_ID = process.env.NEXT_PUBLIC_NEAR_VERIFIER_ID || `verifier.${CONTRACT_ID}`;
 
+const RPC_URLS = [
+  process.env.NEAR_RPC_URL || process.env.NEXT_PUBLIC_NEAR_RPC_URL,
+  "https://rpc.testnet.fastnear.com",
+  "https://testnet.rpc.near.org",
+  "https://free.rpc.fastnear.com",
+].filter(Boolean);
+
 async function nearRpc(method, params) {
-  const res = await fetch("https://rpc.testnet.near.org", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: "test", method, params }),
-  });
-  const json = await res.json();
-  if (json.error) throw new Error(JSON.stringify(json.error));
-  return json.result;
+  let lastErr;
+  for (const url of RPC_URLS) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: "test", method, params }),
+      });
+      const json = await res.json();
+      if (json.error) throw new Error(JSON.stringify(json.error));
+      return json.result;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr;
 }
 
 async function viewCall(accountId, methodName, args = {}) {

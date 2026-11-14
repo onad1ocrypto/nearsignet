@@ -120,8 +120,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         .ns-app{min-height:100vh;width:100%;max-width:100%;display:flex;flex-direction:column;overflow-x:clip}
         .glass-nav-wrap{position:sticky;top:12px;z-index:35;padding:0 16px;width:100%;max-width:100%}
         .glass-nav{
-          max-width:1240px;width:100%;margin:0 auto;padding:8px 14px;
-          display:flex;align-items:center;gap:10px;min-width:0;
+          max-width:min(1600px, calc(100vw - 32px));width:100%;margin:0 auto;padding:9px 16px;
+          display:flex;align-items:center;gap:12px;min-width:0;
           background:rgba(11, 16, 26, 0.82);
           backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
           border:1px solid var(--border-strong);border-radius:18px;
@@ -129,38 +129,55 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
         [data-theme="daylight"] .glass-nav{background:rgba(255,255,255,0.88)}
         .top-pills{
-          display:flex;align-items:center;gap:3px;padding:4px;border-radius:12px;
-          background:rgba(255,255,255,0.03);border:1px solid var(--border);
+          display:flex;align-items:center;gap:2px;padding:4px;border-radius:13px;
+          background:rgba(255,255,255,0.045);border:1px solid var(--border-strong);
           flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;
+          scroll-behavior:smooth;
+          mask-image:linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
+          -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 10px, #000 calc(100% - 10px), transparent 100%);
         }
         .top-pills::-webkit-scrollbar{display:none}
         .top-pill{
-          display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;
-          font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap;flex:none;
-          transition:color .18s,background .18s;
+          display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border-radius:10px;
+          font-size:13.5px;font-weight:700;letter-spacing:-.005em;white-space:nowrap;flex:none;
+          color:rgba(250,248,245,0.96);
+          transition:color .18s,background .18s,box-shadow .18s;
         }
-        .top-pill:hover{color:var(--ink);background:rgba(255,255,255,0.04)}
+        .top-pill svg{opacity:.95;color:rgba(253,224,71,0.95)}
+        .top-pill:hover{color:#fff;background:rgba(255,255,255,0.08)}
         .top-pill.on{
-          color:var(--mint);
-          background:rgba(0, 236, 151, 0.12);
-          box-shadow:inset 0 0 0 1px rgba(0, 236, 151, 0.32);
+          color:#03130C;
+          background:linear-gradient(135deg, #00EC97 0%, #12D98B 100%);
+          box-shadow:0 6px 18px -6px rgba(0,236,151,0.65), inset 0 0 0 1px rgba(255,255,255,0.22);
         }
-        [data-theme="daylight"] .top-pill.on{color:#047857}
+        .top-pill.on svg{color:#03130C;opacity:1}
+        [data-theme="daylight"] .top-pill{color:#0B1220}
+        [data-theme="daylight"] .top-pill svg{color:#B45309}
+        [data-theme="daylight"] .top-pill.on{color:#04120C}
+        [data-theme="daylight"] .top-pill.on svg{color:#04120C}
         .pill-count{
-          min-width:17px;height:17px;padding:0 5px;border-radius:999px;
+          min-width:18px;height:18px;padding:0 5px;border-radius:999px;
           background:rgba(245, 158, 11, 0.2);color:#fbbf24;border:1px solid rgba(245, 158, 11, 0.45);
           font-size:10px;font-weight:700;display:grid;place-items:center;
         }
-        .rpc-chip{border-color:rgba(0,236,151,0.3);background:rgba(0,236,151,0.07);font-size:11px;flex:none}
+        .rpc-chip{
+          border-color:rgba(0,236,151,0.3);background:rgba(0,236,151,0.07);font-size:11px;
+          flex:0 1 auto;min-width:0;max-width:220px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+        }
         .rpc-short{display:none}
-        .ns-main{max-width:1240px;width:100%;margin:0 auto;padding:24px 20px 64px;flex:1;min-width:0}
+        .ns-main{max-width:1340px;width:100%;margin:0 auto;padding:24px 20px 64px;flex:1;min-width:0}
         .mobile-glass-dock{display:none}
         @media (max-width:1480px){
           .rpc-full{display:none}
           .rpc-short{display:inline}
           .acct-label{display:none}
         }
-        @media (max-width:1220px){.rpc-chip{display:none}}
+        @media (max-width:1560px){.rpc-chip{display:none}}
+        @media (max-width:1140px){
+          .top-pill{font-size:12.5px;padding:7px 10px;gap:0}
+          .top-pill svg{display:none}
+          .top-pills{gap:1px}
+        }
         @media (max-width:980px){
           .top-pills{display:none}
           .hide-sm{display:none}

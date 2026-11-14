@@ -15,6 +15,7 @@ import {
   connectNearBrowserWallet,
   disconnectNearBrowserWallet,
   getActiveWalletAccount,
+  walletSessionHint,
   type SupportedWalletId,
 } from "./wallet";
 
@@ -143,6 +144,26 @@ export function MeProvider({ children }: { children: ReactNode }) {
         if (synced.ok && alive) {
           setSessionReady(true);
           return;
+        }
+      }
+
+      // 1b. A browser wallet can report its session slightly later than first paint
+      // (extension injects after hydration). Re-probe a few times so a refresh never
+      // drops a live wallet session and forces a re-connect mid-payment.
+      if (!activeWallet?.accountId && walletSessionHint()) {
+        for (let i = 0; i < 5 && alive; i++) {
+          await new Promise((r) => setTimeout(r, 600));
+          const late = await getActiveWalletAccount();
+          if (late?.accountId) {
+            setWalletConnected(true);
+            setWalletId(late.walletId);
+            const synced = await connectNearAccount(late.accountId);
+            if (synced.ok && alive) {
+              setSessionReady(true);
+              return;
+            }
+            break;
+          }
         }
       }
 
