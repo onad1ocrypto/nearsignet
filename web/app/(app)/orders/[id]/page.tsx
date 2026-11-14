@@ -798,7 +798,7 @@ function NearDepositPanel({
 
         {quote && (
           <div className="mono tiny" style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(7,10,15,0.65)", border: "1px solid var(--border)", marginBottom: 12 }}>
-            Pay <b style={{ color: "#fbbf24" }}>{quote.amountInFormatted}</b> → Locks <b style={{ color: "var(--mint)" }}>{depositNear} NEAR</b> ({money(order.amount)}) in <b>{NEAR_CONTRACT_ID}</b><br />
+            Pay <b style={{ color: "#fbbf24" }}>{asset === "NEAR" ? `${depositNear} NEAR` : quote.amountInFormatted}</b> → Locks <b style={{ color: "var(--mint)" }}>{depositNear} NEAR</b> ({money(order.amount)} contract value) in <b>{NEAR_CONTRACT_ID}</b><br />
             <span className="muted">{quote.route}</span>
           </div>
         )}
