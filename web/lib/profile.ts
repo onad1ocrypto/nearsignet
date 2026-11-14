@@ -151,8 +151,8 @@ export function sanitizeProfile(input: unknown, fallback: MeProfile): MeProfile 
 
 /** Shared sandbox freelancer persona — backed by real `raka.nearsignet-protocol.testnet` account on NEAR Testnet. */
 export const ME_PROFILE_FALLBACK: MeProfile = {
-  name: "Raka Pratama",
-  handle: "raka-studio",
+  name: "Sasam",
+  handle: "sasam-studio",
   nearAccount: "raka.nearsignet-protocol.testnet",
   city: "Yogyakarta",
   country: "ID",

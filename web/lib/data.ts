@@ -55,8 +55,8 @@ export interface Order {
 export type ProductKind = "bottle" | "mug" | "shoe" | "bag" | "candle" | "watch" | "plant" | "cap" | "reel";
 
 export const ME: Person = {
-  name: "Raka Pratama",
-  handle: "raka-studio",
+  name: "Sasam",
+  handle: "sasam-studio",
   nearAccount: "raka.nearsignet-protocol.testnet",
   initials: "RP",
   city: "Yogyakarta",
@@ -72,7 +72,7 @@ export const ORDERS: Order[] = [
     client: { name: "Liam Carter", nearAccount: "liam-client.testnet", initials: "LC", city: "Toronto", country: "CA", color: "var(--sky-l)" },
     amount: 150, nearAmount: 30, currency: "USD", due: "2026-11-16", created: "2026-11-04",
     status: "in_escrow",
-    brief: "Hey Raka! Need 20 clean studio renders of our trail sneaker for our storefront launch. Pure white background, at least 2000px on the long edge, JPG format. Budget is $150 (30 NEAR locked in escrow).",
+    brief: "Hey Sasam! Need 20 clean studio renders of our trail sneaker for our storefront launch. Pure white background, at least 2000px on the long edge, JPG format. Budget is $150 (30 NEAR locked in escrow).",
     criteria: [
       { label: "Exactly 20 files", rule: "count(files) == 20", icon: "file" },
       { label: "JPG format", rule: "mime == image/jpeg", icon: "image" },
@@ -109,7 +109,7 @@ export const ORDERS: Order[] = [
     client: { name: "Elena Rostova", nearAccount: "elena-zurich.testnet", initials: "ER", city: "Zurich", country: "CH", color: "var(--lemon-l)" },
     amount: 320, nearAmount: 64, currency: "USD", due: "2026-11-18", created: "2026-11-10",
     status: "request",
-    brief: "Hi Raka! Building a non-custodial vault protocol. Looking for 3 icon concepts, exported in SVG + PNG, low-saturation slate & mint palette, delivered by Nov 18. Budget $320.",
+    brief: "Hi Sasam! Building a non-custodial vault protocol. Looking for 3 icon concepts, exported in SVG + PNG, low-saturation slate & mint palette, delivered by Nov 18. Budget $320.",
     criteria: [
       { label: "3 icon concepts", rule: "count(concepts) == 3", icon: "file" },
       { label: "SVG + PNG for each", rule: "formats ⊇ {svg, png}", icon: "image" },

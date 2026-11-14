@@ -24,6 +24,11 @@ export const NEAR_CONTRACT_ID =
   process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "nearsignet-protocol.testnet";
 export const NEAR_VERIFIER_ID =
   process.env.NEXT_PUBLIC_NEAR_VERIFIER_ID || `verifier.${NEAR_CONTRACT_ID}`;
+/**
+ * Display label for the platform's freelancer side. The on-chain account is the
+ * relayer's own testnet sub-account, so we never show it as a third party's name.
+ */
+export const NEAR_FREELANCER_LABEL = "NearSignet Freelancer · relayer";
 export const NEAR_FREELANCER_DEFAULT =
   process.env.NEXT_PUBLIC_NEAR_FREELANCER_ID || `raka.${NEAR_CONTRACT_ID}`;
 export const NEAR_CLIENT_DEFAULT =

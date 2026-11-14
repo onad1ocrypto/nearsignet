@@ -373,7 +373,7 @@ const en: Record<string, string> = {
   "signin.near.again": "Switch NEAR Account",
   "signin.guest.badge": "Instant for Judges",
   "signin.guest.kind": "Live Testnet Relayer",
-  "signin.guest.title": "Enter Judge Sandbox (raka.nearsignet-protocol.testnet)",
+  "signin.guest.title": "Enter Judge Sandbox (NearSignet relayer)",
   "signin.guest.body": "Explore every workflow immediately as {name} ({city}) — draft AI criteria, inspect real images/videos, test the AI spending firewall, and stamp SEALED receipts.",
   "signin.guest.li1": "1-click entry — works offline & in automated CI/AI screening",
   "signin.guest.li2": "Pre-linked to live nearsignet-protocol.testnet contract state",
@@ -386,7 +386,7 @@ const en: Record<string, string> = {
   "me.id.nearBody": "Verified account {acct} ({bal} NEAR on {net}). Escrow settlements route straight to this wallet.",
   "me.id.account": "NEAR Account:",
   "me.id.guest": "Judge Sandbox Mode",
-  "me.id.guestBody": "Browsing as {name} ({city}) linked to raka.nearsignet-protocol.testnet. Connect your own .testnet account anytime.",
+  "me.id.guestBody": "Browsing as {name} ({city}) linked to the NearSignet relayer account. Connect your own .testnet account anytime.",
   "me.id.fillCity": "set city",
 
   "me.f.photo": "Avatar image",

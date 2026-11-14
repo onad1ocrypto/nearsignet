@@ -237,7 +237,9 @@ function OrderDetailInner() {
     const fresh = `${order.id}-${makeRunSuffix()}`;
     lsSet(`nearsignet.onchainId.${order.id}`, fresh);
     setOnchainId(fresh);
-    setStatus(order.id === "NSG-2033" ? "awaiting_payment" : order.status === "paid" ? "awaiting_payment" : order.status);
+    // Always return to the funding step: a fresh on-chain id means a fresh escrow,
+    // so the "Sign & Lock" button must be visible right away.
+    setStatus("awaiting_payment");
     setTxHash("");
     setVerdict(null);
     setMediationSplit(null);
@@ -245,7 +247,7 @@ function OrderDetailInner() {
     setLogs([
       { who: "orin_contract_agent", msg: `new_onchain_session("${fresh}")`, res: "Ready for live Testnet tx", kind: "ai" },
     ]);
-    flash(`Fresh on-chain ID ready: ${fresh}`);
+    flash(`Fresh on-chain ID ready: ${fresh} — now click Sign & Lock`);
   };
 
   const stageIdx = TIMELINE.findIndex((g) => g.includes(status));
@@ -330,10 +332,51 @@ function OrderDetailInner() {
                 : "KEY CANNOT SIGN — RECONNECT"}
             </span>
           )}
-          <button type="button" className="btn sm" onClick={startFreshRun} title="Generate a fresh on-chain escrow ID to test the full lifecycle again">
-            <Icon name="refresh" size={13} /> New On-Chain Run
+          <button
+            type="button"
+            className="btn sm"
+            onClick={startFreshRun}
+            title="Step 1 — generate a fresh on-chain escrow ID (needed because one order id can only be funded once)"
+          >
+            <Icon name="refresh" size={13} /> 1 · New On-Chain Run
           </button>
         </div>
+      </div>
+
+      {/* Wallet test path — the two buttons people could not find */}
+      <div
+        className="card pad"
+        style={{
+          padding: "12px 14px",
+          borderColor: walletConnected ? "rgba(0,236,151,0.35)" : "rgba(253,224,71,0.35)",
+          background: walletConnected ? "rgba(0,236,151,0.05)" : "rgba(253,224,71,0.05)",
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          flexWrap: "wrap",
+        }}
+      >
+        <span className="mono tiny" style={{ color: walletConnected ? "var(--mint)" : "#fde047", fontWeight: 700, letterSpacing: ".08em" }}>
+          {walletConnected ? "● WALLET TEST PATH · step 2 of 2" : "● WALLET TEST PATH · step 0 of 2"}
+        </span>
+        <span className="tiny muted" style={{ flex: 1, minWidth: 260 }}>
+          {walletConnected ? (
+            <>
+              Step 1 done — id <b className="mono" style={{ color: "var(--fg)" }}>{onchainId}</b>. Now press{" "}
+              <b style={{ color: "var(--mint)" }}>Sign &amp; Lock</b> in the panel directly below the stepper
+              (only visible while the order is in the <b>Lock NEAR</b> stage).
+            </>
+          ) : (
+            <>
+              Press <b>Connect Meteor Wallet</b> (top-right of this strip), then{" "}
+              <b>Sign &amp; Lock</b>. One order id can only be funded once — if a lock was already sent,
+              press <b>1 · New On-Chain Run</b> first.
+            </>
+          )}
+        </span>
+        <Link href="/orders/new" className="btn sm mint">
+          <Icon name="plus" size={13} /> Or create a brand-new order
+        </Link>
       </div>
 
       {/* NEAR Fiber Settlement Rail */}
@@ -662,7 +705,7 @@ function NearDepositPanel({
   flash: (msg: string) => void;
 }) {
   const { t, money } = useI18n();
-  const { me, walletConnected, session } = useMe();
+  const { me, walletConnected, walletId, session } = useMe();
   const [asset, setAsset] = useState<"NEAR" | "USDC" | "USDT" | "ETH">("NEAR");
   const [quote, setQuote] = useState<{ amountInFormatted: string; nearOut: string; route: string } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -693,15 +736,21 @@ function NearDepositPanel({
           );
         }
         const signerAcct = session.near?.accountId || "";
-        const targetFreelancer =
-          me.nearAccount && me.nearAccount !== signerAcct ? me.nearAccount : NEAR_FREELANCER_DEFAULT;
+        /**
+         * The escrow's freelancer side is always the platform relayer: it is the account
+         * that can later claim the timeout release, and the contract refuses a client who
+         * names themselves. Picking `me.nearAccount` here made the freelancer the signer's
+         * own wallet (which also degraded the label to e.g. "Sasamnearsignetprotocol").
+         */
+        const targetFreelancer = NEAR_FREELANCER_DEFAULT;
+        const walletLabel = signerAcct ? `${walletId || "wallet"}: ${signerAcct}` : "wallet";
         const cbUrl =
           typeof window !== "undefined"
             ? `${window.location.origin}${window.location.pathname}?nsgAction=fund`
             : undefined;
         log({
-          who: signerAcct || "near_wallet",
-          msg: `sign_transaction("create_and_fund_escrow", "${onchainId}")`,
+          who: walletLabel,
+          msg: `sign_transaction("create_and_fund_escrow", "${onchainId}", freelancer="${targetFreelancer}")`,
           res: "Awaiting wallet signature (0.15 NEAR Testnet stake)…",
           kind: "near",
         });

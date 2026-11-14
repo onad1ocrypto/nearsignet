@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { type Criterion, type Order } from "@/lib/data";
-import { saveMyOrder } from "@/lib/requests";
+import { newOrderId, saveMyOrder } from "@/lib/requests";
 import { usdToNear } from "@/lib/near";
 import { BriefDrafter, CriteriaList } from "@/components/DraftContract";
 import { Confetti, Kicker } from "@/components/ui";
@@ -32,7 +32,7 @@ export default function NewOrderPage() {
 
   const createContract = () => {
     if (!canCreate) return;
-    const id = `REQ-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+    const id = newOrderId();
     const due = new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
     const initials = clientName
       .split(/\s+/)

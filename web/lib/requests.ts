@@ -40,6 +40,9 @@ function writeLS(key: string, value: unknown) {
 
 export const newRequestId = () => `REQ-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 
+/** Client-side escrow order id (what you will see in the URL and in the telemetry log). */
+export const newOrderId = () => `NSG-${Math.random().toString(36).slice(2, 7).toUpperCase()}`;
+
 const initials = (name: string) =>
   name
     .split(/\s+/)
