@@ -94,6 +94,49 @@ function seedLogs(o: Order, onchainId: string): Log[] {
   return base;
 }
 
+interface EscrowProbe {
+  exists: boolean;
+  status?: string;
+  client?: string;
+  freelancer?: string;
+  amountNear?: string;
+  reviewDeadlineNs?: string;
+}
+
+/**
+ * Pre-flight contract read before any wallet signature. Wallets show nothing at
+ * all when the transaction will fail with an `assert` (e.g. ORDER_NOT_FOUND or
+ * NOT_CLIENT) — so we check the escrow record first and explain it in the UI.
+ */
+async function probeEscrow(onchainId: string): Promise<EscrowProbe> {
+  try {
+    const r = await fetch(`/api/near/escrow?orderId=${encodeURIComponent(onchainId)}`, { cache: "no-store" });
+    if (!r.ok) return { exists: false };
+    const j = (await r.json()) as {
+      ok?: boolean;
+      escrow?: {
+        status?: string;
+        client?: string;
+        freelancer?: string;
+        amount_yocto?: string;
+        review_deadline_ns?: string;
+      } | null;
+    };
+    const e = j.escrow;
+    if (!e) return { exists: false };
+    return {
+      exists: true,
+      status: e.status,
+      client: e.client,
+      freelancer: e.freelancer,
+      amountNear: e.amount_yocto ? (Number(e.amount_yocto) / 1e24).toFixed(2) : undefined,
+      reviewDeadlineNs: e.review_deadline_ns,
+    };
+  } catch {
+    return { exists: false };
+  }
+}
+
 function OrderDetailInner() {
   const { id } = useParams<{ id: string }>();
   const sp = useSearchParams();
@@ -761,12 +804,27 @@ function ReviewPanel({
   const { t, money } = useI18n();
   const { walletConnected, session } = useMe();
   const [busy, setBusy] = useState<"" | "release" | "timeout">("");
+  const [probe, setProbe] = useState<EscrowProbe | null>(null);
   const nearAmt = order.nearAmount ?? usdToNear(order.amount);
+
+  useEffect(() => {
+    let alive = true;
+    void probeEscrow(onchainId).then((p) => { if (alive) setProbe(p); });
+    return () => { alive = false; };
+  }, [onchainId, busy]);
+
+  // A wallet can sign only when it holds a key for the contract AND we have a session account.
+  const canWalletSign = Boolean(walletConnected && session.near?.accountId);
 
   const settle = async (mode: "release" | "timeout_claim") => {
     setBusy(mode === "release" ? "release" : "timeout");
     try {
-      if (walletConnected && mode === "release") {
+      if (canWalletSign && mode === "release") {
+        if (!probe?.exists) {
+          throw new Error(
+            `ONCHAIN_ESCROW_MISSING — "${onchainId}" is not in ${NEAR_CONTRACT_ID} yet, so there is nothing to release from the wallet. Use "New On-Chain Run" to fund it, or run the relayer settlement below.`
+          );
+        }
         const cbUrl =
           typeof window !== "undefined"
             ? `${window.location.origin}${window.location.pathname}?nsgAction=release`
@@ -801,14 +859,16 @@ function ReviewPanel({
         }),
       });
       const d = await r.json();
+      if (d?.txHash) {
+        log({
+          who: NEAR_CONTRACT_ID,
+          msg: mode === "release" ? `approve_and_release("${onchainId}")` : `claim_after_timeout("${onchainId}")`,
+          res: d.sealId ? `${nearAmt} NEAR → freelancer · ${d.sealId}` : `${nearAmt} NEAR → freelancer`,
+          txHash: d.txHash,
+          kind: "near",
+        });
+      }
       if (!r.ok || d.ok === false) throw new Error(d.error || "NEAR Testnet call failed");
-      log({
-        who: NEAR_CONTRACT_ID,
-        msg: mode === "release" ? `approve_and_release("${onchainId}")` : `claim_after_timeout("${onchainId}")`,
-        res: `${nearAmt} NEAR → freelancer · ${d.sealId}`,
-        txHash: d.txHash || undefined,
-        kind: "near",
-      });
       onReleased(d.txHash, d.sealId);
     } catch (e) {
       log({ who: NEAR_CONTRACT_ID, msg: "approve_and_release failed", res: walletFailure(e), kind: "err" });
@@ -972,7 +1032,7 @@ function MediatorPanel({
   onSettled: (info: { percent: number; txHash: string; live: boolean }) => void;
 }) {
   const { t, money, lang } = useI18n();
-  const { walletConnected } = useMe();
+  const { walletConnected, session } = useMe();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -1010,7 +1070,7 @@ function MediatorPanel({
     if (!proposal) return;
     setBusy(true);
     try {
-      if (walletConnected) {
+      if (walletConnected && session.near?.accountId) {
         const propRes = await fetch("/api/near/escrow", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -1044,7 +1104,6 @@ function MediatorPanel({
           kind: "near",
         });
         onSettled({ percent: proposal.refundPct, txHash: execOut.txHash, live: true });
-        setBusy(false);
         return;
       }
 
@@ -1078,8 +1137,11 @@ function MediatorPanel({
         kind: "near",
       });
       onSettled({ percent: proposal.refundPct, txHash: d.txHash, live: d.mode === "live" });
-    } catch {}
-    setBusy(false);
+    } catch (e) {
+      log({ who: NEAR_CONTRACT_ID, msg: "execute_mediation failed", res: walletFailure(e), kind: "err" });
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

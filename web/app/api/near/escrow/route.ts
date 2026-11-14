@@ -40,6 +40,31 @@ interface ChainEscrowRecord {
  *   `execute_mediation` are signed client-side in the user's wallet while AI attestations
  *   still go through this Scoped-Key endpoint!
  */
+/**
+ * GET /api/near/escrow?orderId=NSG-2041-AB12
+ * Read-only pre-flight: does this escrow actually exist on-chain, who owns it,
+ * and what is its status? Used by the UI before asking a wallet to sign, because
+ * wallets display nothing at all for a transaction that will fail an `assert`.
+ */
+export async function GET(req: Request) {
+  const orderId = new URL(req.url).searchParams.get("orderId") ?? "";
+  if (!orderId || orderId.length > 64) {
+    return NextResponse.json({ ok: false, error: "orderId required" }, { status: 400 });
+  }
+  try {
+    const escrow = await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: orderId }, NEAR_CONTRACT_ID);
+    return NextResponse.json(
+      { ok: true, contractId: NEAR_CONTRACT_ID, orderId, escrow: escrow ?? null },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  } catch (e) {
+    return NextResponse.json(
+      { ok: false, orderId, escrow: null, error: e instanceof Error ? e.message : "RPC error" },
+      { headers: { "Cache-Control": "no-store" } }
+    );
+  }
+}
+
 export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as {
     action?: "fund" | "verify" | "release" | "timeout_claim" | "mediate_propose" | "mediate_settle";
