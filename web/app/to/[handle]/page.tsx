@@ -90,7 +90,7 @@ export default function PublicOrderPage() {
         {/* Freelancer Glass Profile */}
         <aside className="card pub-profile rise">
           <div className="pub-cover">
-            <Orin pose="idle" size={78} style={{ position: "absolute", right: 18, bottom: 8 }} />
+            <Orin pose="idle" size={92} style={{ position: "absolute", right: 8, bottom: 2 }} />
           </div>
           <div style={{ padding: "0 22px 22px" }}>
             <div style={{ marginTop: -34, position: "relative", zIndex: 2 }}>
@@ -254,9 +254,9 @@ export default function PublicOrderPage() {
           border:1px solid var(--border-strong);border-radius:18px;
         }
         [data-theme="daylight"] .pub-nav{background:rgba(255,255,255,0.88)}
-        .pub-main{max-width:1220px;margin:0 auto;padding:24px 24px 60px;display:grid;grid-template-columns:370px 1fr;gap:24px;align-items:start}
+        .pub-main{max-width:1220px;margin:0 auto;padding:24px 20px 60px;display:grid;grid-template-columns:minmax(0,370px) minmax(0,1fr);gap:24px;align-items:start}
         .pub-profile{overflow:hidden}
-        .pub-cover{height:104px;background:linear-gradient(135deg, rgba(0,236,151,0.18), rgba(7,10,15,0.9) 65%, rgba(245,158,11,0.16));border-bottom:1px solid var(--border);position:relative}
+        .pub-cover{height:138px;background:linear-gradient(135deg, rgba(0,236,151,0.18), rgba(7,10,15,0.9) 58%, rgba(185,28,28,0.22));border-bottom:1px solid var(--border);position:relative;overflow:hidden}
         .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
         @media (max-width:900px){.pub-main{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
       `}</style>

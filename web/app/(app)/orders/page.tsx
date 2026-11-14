@@ -100,7 +100,7 @@ function OrdersInner() {
           {shown.map((o) => (
             <Link key={o.id} href={`/orders/${o.id}`} className="card pad lift row between wrap" style={{ gap: 14 }}>
               <div className="row" style={{ gap: 14, minWidth: 0 }}>
-                <span style={{ width: 52, height: 52, borderRadius: 12, border: "1px solid var(--border-strong)", overflow: "hidden", flex: "none" }}>
+                <span style={{ width: 84, height: 58, borderRadius: 11, border: "1px solid var(--border-strong)", overflow: "hidden", flex: "none", boxShadow: "0 6px 16px rgba(0,0,0,0.45)" }}>
                   <Product kind={o.product ?? o.kind ?? "bottle"} />
                 </span>
                 <div className="col" style={{ gap: 4, minWidth: 0 }}>

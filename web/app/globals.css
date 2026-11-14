@@ -92,8 +92,8 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-html, body { margin: 0; padding: 0; }
+html { scroll-behavior: smooth; max-width: 100%; overflow-x: clip; }
+html, body { margin: 0; padding: 0; max-width: 100%; overflow-x: clip; }
 
 body {
   background-color: var(--cream);
@@ -240,6 +240,7 @@ button {
 
 /* ---------- Smoked-Glass + 24k Gold Rim Cards ---------- */
 .card {
+  min-width: 0;
   background: var(--paper);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);

@@ -57,7 +57,7 @@ export type ProductKind = "bottle" | "mug" | "shoe" | "bag" | "candle" | "watch"
 export const ME: Person = {
   name: "Raka Pratama",
   handle: "raka-studio",
-  nearAccount: "raka-studio.testnet",
+  nearAccount: "raka.nearsignet-protocol.testnet",
   initials: "RP",
   city: "Yogyakarta",
   country: "ID",

@@ -25,7 +25,7 @@ import { SignetSeal } from "@/components/SignetSeal";
 import { Icon } from "@/components/Icon";
 import { CriteriaList } from "@/components/DraftContract";
 import { DeliveryPanel, type Log } from "@/components/DeliveryPanel";
-import { Avatar, Confetti, Country, StatusBadge, Toast } from "@/components/ui";
+import { Avatar, Confetti, Country, SAMPLE_IMAGE_BY_KIND, StatusBadge, Toast } from "@/components/ui";
 
 const TIMELINE: Status[][] = [["request"], ["awaiting_payment"], ["in_escrow"], ["verifying", "revision", "review"], ["paid"]];
 
@@ -406,6 +406,41 @@ function OrderDetailInner() {
               </div>
             </div>
             <div className="bubble">{order.brief}</div>
+
+            {/* Real Visual Sample / Deliverable Reference Card */}
+            <div
+              style={{
+                borderRadius: 13,
+                border: "1px solid var(--border-strong)",
+                background: "rgba(5, 8, 15, 0.72)",
+                overflow: "hidden",
+              }}
+            >
+              <div
+                className="row between wrap"
+                style={{
+                  padding: "9px 14px",
+                  borderBottom: "1px solid var(--border)",
+                  gap: 8,
+                }}
+              >
+                <span className="mono tiny" style={{ color: "#fbbf24", fontWeight: 700, letterSpacing: "0.05em" }}>
+                  ★ DELIVERABLE VISUAL SAMPLE · CONTOH HASIL TUGAS NYATA
+                </span>
+                <span className="mono tiny" style={{ color: "var(--mint)" }}>
+                  Verified against {order.criteria.length} objective predicates
+                </span>
+              </div>
+              <div style={{ position: "relative", aspectRatio: "16 / 8.5", maxHeight: 290, width: "100%", overflow: "hidden", background: "#060911" }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={SAMPLE_IMAGE_BY_KIND[order.product ?? order.kind ?? "shoe"]}
+                  alt={`${order.title} sample deliverable`}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                />
+              </div>
+            </div>
+
             <CriteriaList criteria={order.criteria} />
           </div>
         </div>
@@ -468,12 +503,14 @@ function OrderDetailInner() {
       <Confetti fire={fire} />
 
       <style>{`
-        .tl{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-        .tl-step{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,0.02);font-weight:600;font-size:12.5px;color:var(--ink-2)}
+        .tl{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+        .tl-step{display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:11px;border:1px solid var(--border);background:rgba(255,255,255,0.02);font-weight:600;font-size:12.5px;color:var(--ink-2);min-width:0}
+        .tl-step span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
         .tl-step.done{color:var(--mint);border-color:rgba(0,236,151,0.28);background:rgba(0,236,151,0.06)}
         .tl-step.now{color:#fbbf24;border-color:rgba(245,158,11,0.45);background:rgba(245,158,11,0.1)}
         .tl-dot{width:22px;height:22px;border-radius:6px;border:1px solid currentColor;display:grid;place-items:center;font-size:10.5px;flex:none}
-        .od-grid{display:grid;grid-template-columns:1.48fr .88fr;gap:20px;align-items:start}
+        .od-grid{display:grid;grid-template-columns:minmax(0,1.46fr) minmax(0,.88fr);gap:20px;align-items:start}
+        .od-grid > *{min-width:0}
         .bubble{padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.025);line-height:1.6}
         .kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)}
         .kv span{color:var(--ink-2)}

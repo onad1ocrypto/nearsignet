@@ -154,14 +154,20 @@ export default function LandingPage() {
               <span className="mono" style={{ fontWeight: 700, fontSize: 14, color: "var(--mint)" }}>30.0 NEAR · $150</span>
             </div>
 
-            {/* Orin Showcase Header */}
-            <div className="row between" style={{ padding: "10px 14px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", marginBottom: 14 }}>
-              <div className="col" style={{ gap: 4 }}>
-                <span className="kbd" style={{ color: "#fbbf24" }}>AUTONOMOUS ESCROW NOTARY</span>
-                <b style={{ fontSize: 16.5 }}>3D Sneaker Render Pack · 20 Angles</b>
-                <span className="mono tiny muted">raka-studio.testnet ← liam-client.testnet</span>
+            {/* Orin Showcase Header + Real Deliverable Sample */}
+            <div className="row between" style={{ padding: "10px 14px", borderRadius: 14, background: "rgba(255,255,255,0.03)", border: "1px solid var(--border)", marginBottom: 14, gap: 10 }}>
+              <div className="row" style={{ gap: 12, minWidth: 0 }}>
+                <div style={{ width: 68, height: 52, borderRadius: 10, overflow: "hidden", border: "1px solid var(--border-strong)", flex: "none" }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/samples/sneaker-white.jpg" alt="3D Sneaker Render sample" style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </div>
+                <div className="col" style={{ gap: 3, minWidth: 0 }}>
+                  <span className="kbd" style={{ color: "#fbbf24" }}>AUTONOMOUS ESCROW NOTARY</span>
+                  <b style={{ fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>3D Sneaker Render Pack · 20 Angles</b>
+                  <span className="mono tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>raka.nearsignet-protocol.testnet ← liam-client.testnet</span>
+                </div>
               </div>
-              <Orin key={orinPose} pose={orinPose} size={96} className="pop-in" />
+              <Orin key={orinPose} pose={orinPose} size={104} className="pop-in" />
             </div>
 
             {/* Stage Selector */}
@@ -452,15 +458,15 @@ export default function LandingPage() {
         [data-theme="daylight"] .lp-glass-nav{background:rgba(255,255,255,0.88)}
         .lp-links{display:flex;gap:24px;font-weight:600;font-size:13.5px;color:var(--ink-2)}
         .lp-links a:hover{color:var(--ink)}
-        .lp-hero{max-width:1240px;margin:0 auto;padding:42px 24px 56px;display:grid;grid-template-columns:1.08fr .96fr;gap:42px;align-items:center}
-        .lp-h1{font-size:clamp(36px, 4.6vw, 58px);line-height:1.05}
-        .hero-terminal{box-shadow:var(--sh-lg);border-color:var(--border-strong)}
-        .lp-ticker{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);padding:12px 0}
+        .lp-hero{max-width:1240px;margin:0 auto;padding:42px 24px 56px;display:grid;grid-template-columns:minmax(0,1.08fr) minmax(0,.96fr);gap:36px;align-items:center}
+        .lp-h1{font-size:clamp(34px, 4.4vw, 56px);line-height:1.05}
+        .hero-terminal{box-shadow:var(--sh-lg);border-color:var(--border-strong);min-width:0}
+        .lp-ticker{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);padding:12px 0;overflow:hidden}
         .lp-sec{max-width:1240px;margin:0 auto;padding:56px 24px 8px}
-        .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-        .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-        .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
-        .stamp-showcase{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center}
+        .grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+        .grid-4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+        .grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+        .stamp-showcase{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:28px;align-items:center}
         .lp-foot{border-top:1px solid var(--border);padding:24px;background:rgba(7,10,15,0.6)}
         @media (max-width:940px){
           .lp-hero{grid-template-columns:1fr}

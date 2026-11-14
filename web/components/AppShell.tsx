@@ -84,16 +84,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
 
-          <div className="row" style={{ gap: 8, marginLeft: "auto" }}>
+          <div className="row nav-actions" style={{ gap: 7, marginLeft: "auto", flex: "none" }}>
             <a
               href={nearExplorerAccount(NEAR_CONTRACT_ID)}
               target="_blank"
               rel="noreferrer"
               className="badge mono rpc-chip"
-              title="Live NEAR Testnet Escrow Smart Contract"
+              title={`Live NEAR Testnet Escrow Smart Contract (${NEAR_CONTRACT_ID})`}
             >
               <span className="dot" style={{ color: "var(--mint)" }} />
-              {NEAR_CONTRACT_ID}
+              <span className="rpc-full">{NEAR_CONTRACT_ID}</span>
+              <span className="rpc-short">Testnet</span>
             </a>
             <ThemeSwitch />
             <LangSwitch compact />
@@ -116,21 +117,26 @@ export function AppShell({ children }: { children: ReactNode }) {
       </nav>
 
       <style>{`
-        .ns-app{min-height:100vh;display:flex;flex-direction:column}
-        .glass-nav-wrap{position:sticky;top:14px;z-index:35;padding:0 20px}
+        .ns-app{min-height:100vh;width:100%;max-width:100%;display:flex;flex-direction:column;overflow-x:clip}
+        .glass-nav-wrap{position:sticky;top:12px;z-index:35;padding:0 16px;width:100%;max-width:100%}
         .glass-nav{
-          max-width:1280px;margin:0 auto;padding:10px 16px;
-          display:flex;align-items:center;gap:16px;
-          background:rgba(11, 16, 26, 0.78);
+          max-width:1240px;width:100%;margin:0 auto;padding:8px 14px;
+          display:flex;align-items:center;gap:10px;min-width:0;
+          background:rgba(11, 16, 26, 0.82);
           backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);
           border:1px solid var(--border-strong);border-radius:18px;
           box-shadow:0 18px 42px -14px rgba(0,0,0,0.75), inset 0 1px 0 rgba(255,255,255,0.08);
         }
-        [data-theme="daylight"] .glass-nav{background:rgba(255,255,255,0.86)}
-        .top-pills{display:flex;align-items:center;gap:4px;padding:4px;border-radius:12px;background:rgba(255,255,255,0.03);border:1px solid var(--border)}
+        [data-theme="daylight"] .glass-nav{background:rgba(255,255,255,0.88)}
+        .top-pills{
+          display:flex;align-items:center;gap:3px;padding:4px;border-radius:12px;
+          background:rgba(255,255,255,0.03);border:1px solid var(--border);
+          flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;
+        }
+        .top-pills::-webkit-scrollbar{display:none}
         .top-pill{
-          display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:9px;
-          font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap;
+          display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:9px;
+          font-size:12.5px;font-weight:600;color:var(--ink-2);white-space:nowrap;flex:none;
           transition:color .18s,background .18s;
         }
         .top-pill:hover{color:var(--ink);background:rgba(255,255,255,0.04)}
@@ -141,27 +147,33 @@ export function AppShell({ children }: { children: ReactNode }) {
         }
         [data-theme="daylight"] .top-pill.on{color:#047857}
         .pill-count{
-          min-width:18px;height:18px;padding:0 5px;border-radius:999px;
+          min-width:17px;height:17px;padding:0 5px;border-radius:999px;
           background:rgba(245, 158, 11, 0.2);color:#fbbf24;border:1px solid rgba(245, 158, 11, 0.45);
-          font-size:10.5px;font-weight:700;display:grid;place-items:center;
+          font-size:10px;font-weight:700;display:grid;place-items:center;
         }
-        .rpc-chip{border-color:rgba(0,236,151,0.3);background:rgba(0,236,151,0.07);font-size:11px}
-        .ns-main{max-width:1280px;width:100%;margin:0 auto;padding:28px 24px 64px;flex:1}
+        .rpc-chip{border-color:rgba(0,236,151,0.3);background:rgba(0,236,151,0.07);font-size:11px;flex:none}
+        .rpc-short{display:none}
+        .ns-main{max-width:1240px;width:100%;margin:0 auto;padding:24px 20px 64px;flex:1;min-width:0}
         .mobile-glass-dock{display:none}
-        @media (max-width:1120px){.rpc-chip{display:none}}
-        @media (max-width:920px){
+        @media (max-width:1480px){
+          .rpc-full{display:none}
+          .rpc-short{display:inline}
+          .acct-label{display:none}
+        }
+        @media (max-width:1220px){.rpc-chip{display:none}}
+        @media (max-width:980px){
           .top-pills{display:none}
           .hide-sm{display:none}
-          .ns-main{padding:20px 16px 104px}
+          .ns-main{padding:18px 14px 104px}
           .mobile-glass-dock{
             display:grid;grid-template-columns:repeat(6,1fr);
             position:fixed;left:12px;right:12px;bottom:12px;z-index:35;
-            background:rgba(11,16,26,0.9);backdrop-filter:blur(20px);
+            background:rgba(11,16,26,0.92);backdrop-filter:blur(20px);
             border:1px solid var(--border-strong);border-radius:16px;padding:8px 6px;
             box-shadow:0 16px 36px rgba(0,0,0,0.8);
           }
           [data-theme="daylight"] .mobile-glass-dock{background:rgba(255,255,255,0.92)}
-          .mobile-glass-dock a{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-2);font-weight:600}
+          .mobile-glass-dock a{display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--ink-2);font-weight:600;min-width:0}
           .mobile-glass-dock a.on{color:var(--mint)}
           .mobile-glass-dock small{font-size:9.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
         }

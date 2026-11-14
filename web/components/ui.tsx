@@ -114,7 +114,7 @@ export function ProfileMenu() {
         }}
       >
         <Avatar p={{ initials: initialsOf(me.name), color: ME_COLOR }} size={28} photo={me.photo} />
-        <span className="mono tiny hide-sm" style={{ fontWeight: 600, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span className="mono tiny hide-sm acct-label" style={{ fontWeight: 600, maxWidth: 112, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
           {me.nearAccount}
         </span>
       </button>
@@ -273,27 +273,35 @@ export function StatusBadge({ s }: { s: Status }) {
   );
 }
 
-/* ---------------- Sleek Dark Geometric Deliverable Thumbnails ---------------- */
+/* ---------------- Real High-Resolution Deliverable Preview Thumbnails ---------------- */
+export const SAMPLE_IMAGE_BY_KIND: Record<ProductKind, string> = {
+  shoe: "/samples/sneaker-white.jpg",
+  reel: "/samples/wallet-reel.jpg",
+  watch: "/samples/defi-icons.jpg",
+  mug: "/samples/app-cards.jpg",
+  plant: "/samples/sdk-docs.jpg",
+  bottle: "/samples/storefront-emblem.jpg",
+  bag: "/samples/defi-icons.jpg",
+  candle: "/samples/app-cards.jpg",
+  cap: "/samples/storefront-emblem.jpg",
+};
+
 export function Product({ kind, bg = "#0B111B", style }: { kind: ProductKind; bg?: string; style?: CSSProperties }) {
-  const mint = "#00EC97";
-  const amber = "#F59E0B";
-  const slate = "#94A3B8";
-  const shapes: Record<ProductKind, ReactNode> = {
-    bottle: <><polygon points="50,18 76,33 76,67 50,82 24,67 24,33" fill="rgba(0,236,151,0.12)" stroke={mint} strokeWidth="2.2" /><circle cx="50" cy="50" r="12" fill="rgba(245,158,11,0.22)" stroke={amber} strokeWidth="2" /></>,
-    mug: <><rect x="22" y="25" width="56" height="50" rx="8" fill="rgba(56,189,248,0.12)" stroke="#38BDF8" strokeWidth="2.2" /><rect x="30" y="34" width="40" height="7" rx="2" fill={mint} opacity=".8" /><rect x="30" y="47" width="26" height="18" rx="4" fill="none" stroke={slate} strokeWidth="1.8" /></>,
-    shoe: <><polygon points="50,20 80,50 50,80 20,50" fill="rgba(0,236,151,0.14)" stroke={mint} strokeWidth="2.2" /><circle cx="50" cy="50" r="9" fill={mint} /></>,
-    bag: <><rect x="22" y="28" width="56" height="44" rx="9" fill="rgba(245,158,11,0.12)" stroke={amber} strokeWidth="2.2" /><path d="M40 60V40l20 20V40" fill="none" stroke={mint} strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></>,
-    candle: <><rect x="22" y="26" width="56" height="48" rx="8" fill="rgba(167,139,250,0.12)" stroke="#A78BFA" strokeWidth="2.2" /><path d="M32 60l11-14 10 8 15-18" fill="none" stroke={mint} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></>,
-    watch: <><circle cx="50" cy="50" r="26" fill="rgba(245,158,11,0.12)" stroke={amber} strokeWidth="2.2" /><polygon points="50,32 65,50 50,68 35,50" fill="rgba(0,236,151,0.25)" stroke={mint} strokeWidth="2" /></>,
-    plant: <><rect x="26" y="22" width="48" height="56" rx="7" fill="rgba(255,255,255,0.04)" stroke={slate} strokeWidth="2" /><path d="M35 37h30M35 49h30M35 61h18" stroke={mint} strokeWidth="2.5" strokeLinecap="round" /></>,
-    cap: <><rect x="24" y="22" width="52" height="56" rx="7" fill="rgba(245,158,11,0.1)" stroke={amber} strokeWidth="2" /><rect x="33" y="31" width="34" height="24" rx="4" fill="rgba(0,236,151,0.15)" stroke={mint} strokeWidth="1.8" /></>,
-    reel: <><rect x="29" y="17" width="42" height="66" rx="8" fill="rgba(0,236,151,0.1)" stroke={mint} strokeWidth="2.2" /><path d="M44 39l15 11-15 11z" fill={amber} /></>,
-  };
+  const src = SAMPLE_IMAGE_BY_KIND[kind] || "/samples/sneaker-white.jpg";
   return (
-    <svg viewBox="0 0 100 100" style={{ display: "block", width: "100%", height: "100%", ...style }}>
-      <rect width="100" height="100" fill={bg} />
-      {shapes[kind]}
-    </svg>
+    <div style={{ width: "100%", height: "100%", background: bg, overflow: "hidden", position: "relative", ...style }}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={src}
+        alt={`${kind} deliverable sample`}
+        style={{
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          display: "block",
+        }}
+      />
+    </div>
   );
 }
 

@@ -166,7 +166,38 @@ const KINDS: ProductKind[] = ["bottle", "mug", "shoe", "bag", "candle", "watch",
 const COLORS = ["#00EC97", "#F59E0B", "#38BDF8", "#10B981", "#A78BFA", "#FBBF24"];
 const GREY_INDEX = 13;
 
-async function drawTokenRender(kind: ProductKind, color: string, bg: string, w: number, h: number): Promise<Blob> {
+const imgCache = new Map<string, Promise<HTMLImageElement | null>>();
+function loadSampleImage(src: string): Promise<HTMLImageElement | null> {
+  if (typeof window === "undefined" || typeof Image === "undefined") return Promise.resolve(null);
+  const hit = imgCache.get(src);
+  if (hit) return hit;
+  const p = new Promise<HTMLImageElement | null>((resolve) => {
+    const im = new Image();
+    im.crossOrigin = "anonymous";
+    const timer = window.setTimeout(() => resolve(null), 2500);
+    im.onload = () => {
+      window.clearTimeout(timer);
+      resolve(im);
+    };
+    im.onerror = () => {
+      window.clearTimeout(timer);
+      resolve(null);
+    };
+    im.src = src;
+  });
+  imgCache.set(src, p);
+  return p;
+}
+
+async function drawTokenRender(
+  index: number,
+  kind: ProductKind,
+  color: string,
+  bg: string,
+  w: number,
+  h: number,
+  photo: HTMLImageElement | null
+): Promise<Blob> {
   const c = document.createElement("canvas");
   c.width = w;
   c.height = h;
@@ -174,63 +205,121 @@ async function drawTokenRender(kind: ProductKind, color: string, bg: string, w: 
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, w, h);
 
-  ctx.fillStyle = "rgba(15,23,42,.12)";
-  ctx.beginPath();
-  ctx.ellipse(w / 2, h * 0.78, w * 0.22, h * 0.04, 0, 0, Math.PI * 2);
-  ctx.fill();
+  if (photo && photo.naturalWidth > 0) {
+    // Composite real photorealistic 3D studio sneaker inside safe inner frame so outer border ring stays 100% pure bg (#FFFFFF or #D6DEDB defect)
+    ctx.save();
+    const scaleVar = 1 + ((index % 5) - 2) * 0.035;
+    const mirror = index % 4 === 2 ? -1 : 1;
+    const hueDeg = [0, 0, 14, -12, 28, -22][index % 6];
+    if (typeof ctx.filter === "string" && hueDeg !== 0) {
+      ctx.filter = `hue-rotate(${hueDeg}deg) saturate(1.06)`;
+    }
+    if (bg !== "#FFFFFF") {
+      // Multiply blends white studio backdrop seamlessly into the grey cyclorama defect (#D6DEDB)
+      ctx.globalCompositeOperation = "multiply";
+    }
+    const boxW = w * 0.78 * scaleVar;
+    const boxH = boxW * (photo.naturalHeight / photo.naturalWidth);
+    ctx.translate(w / 2, h * 0.51);
+    ctx.scale(mirror, 1);
+    ctx.drawImage(photo, -boxW / 2, -boxH / 2, boxW, boxH);
+    ctx.restore();
 
-  ctx.fillStyle = color;
-  ctx.strokeStyle = "#0F172A";
-  ctx.lineWidth = Math.max(8, w * 0.01);
-  const cx = w / 2;
-  const cy = h * 0.48;
-  const s = Math.min(w, h) * 0.26;
-  ctx.beginPath();
-  if (kind === "watch" || kind === "bottle") {
-    ctx.arc(cx, cy, s * 0.85, 0, Math.PI * 2);
-  } else if (kind === "mug" || kind === "bag") {
-    ctx.roundRect(cx - s * 0.8, cy - s * 0.8, s * 1.6, s * 1.6, s * 0.24);
+    // Subtle studio shot slate inside safe inner zone (well inside outer border ring)
+    ctx.save();
+    ctx.fillStyle = bg === "#FFFFFF" ? "rgba(15, 23, 42, 0.36)" : "rgba(153, 27, 27, 0.78)";
+    ctx.font = `700 ${Math.round(w * 0.018)}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+    ctx.fillText(
+      bg === "#FFFFFF" ? `STUDIO SHOT #${String(index + 1).padStart(2, "0")} · 2400×2400 · #FFFFFF` : `STUDIO SHOT #${String(index + 1).padStart(2, "0")} · GREY BACKDROP (#D6DEDB)`,
+      w * 0.14,
+      h * 0.84
+    );
+    ctx.restore();
   } else {
-    ctx.moveTo(cx, cy - s * 0.95);
-    ctx.lineTo(cx + s * 0.9, cy);
-    ctx.lineTo(cx, cy + s * 0.95);
-    ctx.lineTo(cx - s * 0.9, cy);
-    ctx.closePath();
-  }
-  ctx.fill();
-  ctx.stroke();
+    ctx.fillStyle = "rgba(15,23,42,.12)";
+    ctx.beginPath();
+    ctx.ellipse(w / 2, h * 0.78, w * 0.22, h * 0.04, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-  return await new Promise((res) => c.toBlob((b) => res(b!), "image/jpeg", 0.86));
+    ctx.fillStyle = color;
+    ctx.strokeStyle = "#0F172A";
+    ctx.lineWidth = Math.max(8, w * 0.01);
+    const cx = w / 2;
+    const cy = h * 0.48;
+    const s = Math.min(w, h) * 0.26;
+    ctx.beginPath();
+    if (kind === "watch" || kind === "bottle") {
+      ctx.arc(cx, cy, s * 0.85, 0, Math.PI * 2);
+    } else if (kind === "mug" || kind === "bag") {
+      ctx.roundRect(cx - s * 0.8, cy - s * 0.8, s * 1.6, s * 1.6, s * 0.24);
+    } else {
+      ctx.moveTo(cx, cy - s * 0.95);
+      ctx.lineTo(cx + s * 0.9, cy);
+      ctx.lineTo(cx, cy + s * 0.95);
+      ctx.lineTo(cx - s * 0.9, cy);
+      ctx.closePath();
+    }
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  return await new Promise((res) => c.toBlob((b) => res(b!), "image/jpeg", 0.9));
 }
 
 export async function makeSampleFiles(count = 20, includeGreyDefect = true): Promise<File[]> {
+  const sneakerPhoto = await loadSampleImage("/samples/sneaker-white.jpg");
   const files: File[] = [];
   for (let i = 0; i < count; i++) {
     const bad = includeGreyDefect && i === GREY_INDEX;
-    const blob = await drawTokenRender(KINDS[i % KINDS.length], COLORS[i % COLORS.length], bad ? "#D6DEDB" : "#FFFFFF", 2400, 2400);
+    const blob = await drawTokenRender(
+      i,
+      KINDS[i % KINDS.length],
+      COLORS[i % COLORS.length],
+      bad ? "#D6DEDB" : "#FFFFFF",
+      2400,
+      2400,
+      sneakerPhoto
+    );
     files.push(new File([blob], `RENDER_${String(i + 1).padStart(3, "0")}.jpg`, { type: "image/jpeg" }));
   }
   return files;
 }
 
-function drawReelFrame(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, total: number) {
+function drawReelFrame(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  t: number,
+  total: number,
+  reelPhoto: HTMLImageElement | null
+) {
   const g = ctx.createLinearGradient(0, 0, w, h);
   g.addColorStop(0, "#070A0F");
   g.addColorStop(1, "#0E2920");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, h);
 
-  const bob = Math.sin(t * 1.4) * 20;
-  ctx.save();
-  ctx.translate(w / 2, h * 0.5 + bob);
-  ctx.fillStyle = "#00EC97";
-  ctx.strokeStyle = "#F59E0B";
-  ctx.lineWidth = 8;
-  ctx.beginPath();
-  ctx.arc(0, 0, 220, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.stroke();
-  ctx.restore();
+  const bob = Math.sin(t * 1.6) * 22;
+  if (reelPhoto && reelPhoto.naturalWidth > 0) {
+    ctx.save();
+    const zoom = 1.04 + Math.sin(t * 0.9) * 0.04;
+    const drawH = h * 0.56 * zoom;
+    const drawW = drawH * (reelPhoto.naturalWidth / reelPhoto.naturalHeight);
+    ctx.translate(w / 2, h * 0.44 + bob);
+    ctx.drawImage(reelPhoto, -drawW / 2, -drawH / 2, drawW, drawH);
+    ctx.restore();
+  } else {
+    ctx.save();
+    ctx.translate(w / 2, h * 0.5 + bob);
+    ctx.fillStyle = "#00EC97";
+    ctx.strokeStyle = "#F59E0B";
+    ctx.lineWidth = 8;
+    ctx.beginPath();
+    ctx.arc(0, 0, 220, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
 
   if (t < 3) {
     ctx.globalAlpha = Math.min(1, 3 - t) * 0.95;
@@ -253,6 +342,7 @@ function drawReelFrame(ctx: CanvasRenderingContext2D, w: number, h: number, t: n
 }
 
 export async function makeSampleVideo(seconds = 6): Promise<File[]> {
+  const reelPhoto = await loadSampleImage("/samples/wallet-reel.jpg");
   const W = 1080, H = 1920;
   const canvas = document.createElement("canvas");
   canvas.width = W; canvas.height = H;
@@ -291,7 +381,7 @@ export async function makeSampleVideo(seconds = 6): Promise<File[]> {
   await new Promise<void>((res) => {
     const frame = () => {
       const t = (performance.now() - t0) / 1000;
-      drawReelFrame(ctx, W, H, t, seconds);
+      drawReelFrame(ctx, W, H, t, seconds, reelPhoto);
       if (t < seconds) requestAnimationFrame(frame);
       else res();
     };
@@ -328,16 +418,26 @@ export function DeliveryPanel({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const previews = useMemo(() => {
-    const out: { url: string; name: string; video: boolean }[] = [];
-    for (const f of files) {
+    const out: { url: string; name: string; video: boolean; greyDefect?: boolean }[] = [];
+    const pickIndices =
+      files.length >= 14
+        ? [0, 1, 2, GREY_INDEX, Math.max(3, files.length - 2), Math.max(4, files.length - 1)]
+        : files.map((_, idx) => idx).slice(0, 6);
+    const seen = new Set<number>();
+    for (const idx of pickIndices) {
+      if (seen.has(idx) || idx >= files.length) continue;
+      seen.add(idx);
+      const f = files[idx];
       const e = (f.name.split(".").pop() || "").toLowerCase();
       const video = f.type.startsWith("video/") || ["mp4", "mov", "m4v", "webm"].includes(e);
       if (!f.type.startsWith("image/") && !video) continue;
-      out.push({ url: URL.createObjectURL(f), name: f.name, video });
+      const fact = facts[idx];
+      const greyDefect = typeof fact?.bgWhite === "number" && fact.bgWhite < 0.85;
+      out.push({ url: URL.createObjectURL(f), name: f.name, video, greyDefect });
       if (out.length >= 6) break;
     }
     return out;
-  }, [files]);
+  }, [files, facts]);
 
   const uploaded = files.length > 0;
   const videoJob = useMemo(
@@ -509,7 +609,11 @@ export function DeliveryPanel({
             <div className="thumbs stagger" style={{ position: "relative" }}>
               {busy === "verifying" && <div className="scanline" />}
               {previews.map((p, i) => (
-                <div key={p.url} className="thumb">
+                <div
+                  key={p.url}
+                  className="thumb"
+                  style={p.greyDefect ? { borderColor: "rgba(239,68,68,0.75)", boxShadow: "0 0 0 1px rgba(239,68,68,0.45)" } : undefined}
+                >
                   {p.video ? (
                     <>
                       <video src={p.url} muted playsInline preload="metadata" />
@@ -518,6 +622,24 @@ export function DeliveryPanel({
                   ) : (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img src={p.url} alt={`delivery preview ${i + 1}`} />
+                  )}
+                  {p.greyDefect && (
+                    <span
+                      className="mono"
+                      style={{
+                        position: "absolute",
+                        top: 5,
+                        right: 5,
+                        padding: "2px 6px",
+                        borderRadius: 6,
+                        background: "rgba(185, 28, 28, 0.92)",
+                        color: "#FEE2E2",
+                        fontSize: 9,
+                        fontWeight: 700,
+                      }}
+                    >
+                      GREY BG
+                    </span>
                   )}
                   <span className="thumb-name mono">{p.name.replace(/\.[a-z]+$/i, "")}</span>
                 </div>
