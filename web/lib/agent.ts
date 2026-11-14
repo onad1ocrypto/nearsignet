@@ -17,12 +17,18 @@ const apiKey = () => process.env.NEAR_AI_API_KEY || process.env.LLM_API_KEY || "
 const isNearAi = () => Boolean(process.env.NEAR_AI_API_KEY);
 export const llmEnabled = () => Boolean(apiKey());
 
-const LLM_URL = () =>
-  process.env.LLM_BASE_URL ||
-  (isNearAi() ? "https://cloud.near.ai/v1/chat/completions" : "https://api.openai.com/v1/chat/completions");
+const LLM_URL = () => {
+  const base = process.env.NEAR_AI_BASE_URL || process.env.LLM_BASE_URL;
+  if (base) {
+    return base.endsWith("/chat/completions") ? base : `${base.replace(/\/$/, "")}/chat/completions`;
+  }
+  return isNearAi()
+    ? "https://cloud-api.near.ai/v1/chat/completions"
+    : "https://api.openai.com/v1/chat/completions";
+};
 
 const LLM_MODEL = () =>
-  process.env.LLM_MODEL || (isNearAi() ? "deepseek-ai/DeepSeek-V3.1" : "gpt-4o-mini");
+  process.env.NEAR_AI_MODEL || process.env.LLM_MODEL || (isNearAi() ? "zai-org/GLM-5.1-FP8" : "gpt-4o-mini");
 
 const ICONS = ["file", "image", "ruler", "palette", "clock", "text"] as const;
 
@@ -33,7 +39,11 @@ const PREVIEW_PAUSE_MS = 500;
 
 function llmModels(): string[] {
   const list = (process.env.LLM_MODELS ?? "").split(",").map((m) => m.trim()).filter(Boolean);
-  return (list.length ? list : [LLM_MODEL()]).slice(0, 4);
+  if (list.length) return list.slice(0, 4);
+  if (isNearAi() && !process.env.NEAR_AI_MODEL && !process.env.LLM_MODEL) {
+    return ["zai-org/GLM-5.1-FP8", "deepseek-ai/DeepSeek-V3.1"];
+  }
+  return [LLM_MODEL()];
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -191,7 +201,7 @@ const SIGNALS: { key: string; weight: number; hard?: boolean; re: RegExp }[] = [
 ];
 
 const MEDIATOR_SYSTEM = `You are the Scoped Mediator Agent of NearSignet on NEAR Protocol.
-You propose basis-point splits for funds held in smart-contract escrow (nearsignet.testnet) when a delivery is disputed.
+You propose basis-point splits for funds held in smart-contract escrow (nearsignet-protocol.testnet) when a delivery is disputed.
 Note: Your Function-Call Access Key can ONLY propose splits; human parties/contract rules execute transfers.
 Rely on machine-checkable evidence first, claim text second. Reply with ONLY JSON:
 {"decision":"release"|"refund_partial"|"refund_full"|"escalate","percent":number,"confidence":number,"reasons":[string],"evidence":[string],"nextStep":string}`;

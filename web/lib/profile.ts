@@ -156,6 +156,6 @@ export const ME_PROFILE_FALLBACK: MeProfile = {
   nearAccount: "raka-studio.testnet",
   city: "Yogyakarta",
   country: "ID",
-  bio: "3D motion artist, product visualizer & Web3 UI designer in Yogyakarta. Escrows lock in nearsignet.testnet, deliverables are inspected in-browser + verified by a scoped AI agent, and payouts settle directly to my NEAR wallet.",
+  bio: "3D motion artist, product visualizer & Web3 UI designer in Yogyakarta. Escrows lock in nearsignet-protocol.testnet, deliverables are inspected in-browser + verified by a scoped AI agent, and payouts settle directly to my NEAR wallet.",
   tags: ["3D Product Renders", "Motion Reels", "DeFi Brand Kits", "Technical Docs"],
 };

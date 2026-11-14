@@ -241,7 +241,7 @@ export default function InsightsPage() {
               {!escrows.length && (
                 <tr>
                   <td colSpan={7} style={{ padding: 16, textAlign: "center" }} className="muted">
-                    {loading ? "Querying rpc.testnet.near.org…" : "Connected to nearsignet.testnet"}
+                    {loading ? "Querying rpc.testnet.near.org…" : "Connected to nearsignet-protocol.testnet"}
                   </td>
                 </tr>
               )}

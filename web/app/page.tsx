@@ -129,7 +129,7 @@ export default function LandingPage() {
 
           <div className="row wrap" style={{ gap: 8, paddingTop: 6 }}>
             <span className="badge" style={{ borderColor: "rgba(0,236,151,0.3)", color: "var(--mint)" }}>
-              <Icon name="lock" size={12} /> Non-Custodial `nearsignet.testnet`
+              <Icon name="lock" size={12} /> Non-Custodial `nearsignet-protocol.testnet`
             </span>
             <span className="badge" style={{ borderColor: "rgba(245,158,11,0.35)", color: "#fbbf24" }}>
               <Icon name="key" size={12} /> Scoped Function-Call AI Firewall
@@ -201,7 +201,7 @@ export default function LandingPage() {
             {stage === 1 && (
               <div className="col pop-in" style={{ gap: 9, padding: 14, borderRadius: 12, border: "1px solid rgba(56,189,248,0.35)", background: "rgba(56,189,248,0.07)" }}>
                 <div className="row between">
-                  <b style={{ color: "#38bdf8" }}>Locked in `nearsignet.testnet`</b>
+                  <b style={{ color: "#38bdf8" }}>Locked in `nearsignet-protocol.testnet`</b>
                   <span className="mono tiny" style={{ color: "var(--mint)" }}>30.0 Ⓝ</span>
                 </div>
                 <p className="tiny muted" style={{ lineHeight: 1.55 }}>
@@ -217,7 +217,7 @@ export default function LandingPage() {
               <div className="col pop-in" style={{ gap: 8, position: "relative", overflow: "hidden", padding: 14, borderRadius: 12, border: "1px solid var(--border-glow)", background: "rgba(0,236,151,0.06)" }}>
                 <div className="scanline" />
                 <div className="row between">
-                  <b style={{ color: "var(--mint)" }}>Orin · `verifier.nearsignet.testnet`</b>
+                  <b style={{ color: "var(--mint)" }}>Orin · `verifier.nearsignet-protocol.testnet`</b>
                   <span className="mono tiny" style={{ color: "#fbbf24" }}>Scoped Key ✓</span>
                 </div>
                 <div className="mono tiny">✓ count(files) == 20 (20 real JPEGs decoded)</div>
@@ -268,7 +268,7 @@ export default function LandingPage() {
           <Kicker amber>NEAR PROTOCOL ARCHITECTURE</Kicker>
           <h2 style={{ fontSize: "clamp(28px, 3.5vw, 42px)" }}>Engineered for Autonomous Cross-Border Settlement</h2>
           <p className="muted" style={{ maxWidth: 640 }}>
-            Every escrow vault, AI verification signature, and timeout guarantee is anchored on NEAR Testnet (`nearsignet.testnet`).
+            Every escrow vault, AI verification signature, and timeout guarantee is anchored on NEAR Testnet (`nearsignet-protocol.testnet`).
           </p>
         </div>
 
@@ -416,7 +416,7 @@ export default function LandingPage() {
               <Icon name="sparkles" size={17} /> {t("lp.endBtn")}
             </button>
             <a href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer" className="btn lg">
-              Inspect `nearsignet.testnet` ↗
+              Inspect `nearsignet-protocol.testnet` ↗
             </a>
           </div>
         </div>

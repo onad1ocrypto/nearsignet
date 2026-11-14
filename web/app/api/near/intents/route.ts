@@ -21,7 +21,7 @@ export async function POST(req: Request) {
   };
   const origin = b.origin || ASSET_MAP[String(b.fromAsset || "NEAR").toUpperCase()] || "usdc-base";
   const amountUsd = Math.max(1, Number(b.usdAmount ?? b.amountUsd ?? 150));
-  const recipient = String(b.recipientId ?? b.recipient ?? "nearsignet.testnet");
+  const recipient = String(b.recipientId ?? b.recipient ?? "nearsignet-protocol.testnet");
   const quote = await getCrossChainIntentsQuote(origin, amountUsd, recipient);
   return NextResponse.json(
     {

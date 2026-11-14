@@ -213,7 +213,7 @@ export default function PublicOrderPage() {
 
               {Number(budget) > 0 && (
                 <div className="row between mono tiny" style={{ padding: "10px 14px", borderRadius: 11, border: "1px solid var(--border-glow)", background: "rgba(0,236,151,0.06)" }}>
-                  <span>Vault Preview (`nearsignet.testnet`):</span>
+                  <span>Vault Preview (`nearsignet-protocol.testnet`):</span>
                   <b style={{ color: "var(--mint)" }}>{money(Number(budget))} ≈ {nearEst} NEAR {payAsset !== "NEAR" ? `(from ${payAsset})` : ""}</b>
                 </div>
               )}

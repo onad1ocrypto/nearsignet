@@ -8,7 +8,7 @@ import { StatusBadge } from "@/components/ui";
 import type { Order, ProductKind, Status } from "@/lib/data";
 import type { FileFacts, RuleResult } from "@/lib/verify";
 
-export type Log = { who: string; msg: string; res?: string; kind: "ai" | "near" | "hook" | "err" };
+export type Log = { who: string; msg: string; res?: string; txHash?: string; kind: "ai" | "near" | "hook" | "err" };
 type CheckState = "idle" | "run" | "pass" | "fail" | "manual";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -375,7 +375,7 @@ export function DeliveryPanel({
     if (!facts.length) return;
     setBusy("verifying");
     setStatus("verifying");
-    log({ who: "verifier.nearsignet.testnet", msg: "orin_scan_start", res: `${order.criteria.length} rules · ${facts.length} files measured`, kind: "ai" });
+    log({ who: "verifier.nearsignet-protocol.testnet", msg: "orin_scan_start", res: `${order.criteria.length} rules · ${facts.length} files measured`, kind: "ai" });
     setChecks(order.criteria.map(() => "run"));
 
     let verdict: { results?: RuleResult[]; evidenceHash?: string } | null = null;
@@ -399,7 +399,7 @@ export function DeliveryPanel({
       setChecks((x) => x.map((v, j) => (j === i ? (res.pass ? "pass" : res.kind === "manual" ? "manual" : "fail") : v)));
       setNotes((x) => x.map((v, j) => (j === i ? res.note : v)));
       log({
-        who: "verifier.nearsignet.testnet",
+        who: "verifier.nearsignet-protocol.testnet",
         msg: order.criteria[i].rule,
         res: res.pass ? `✓ ${res.note}` : res.note,
         kind: res.pass ? "ai" : res.kind === "manual" ? "hook" : "err",
@@ -417,10 +417,10 @@ export function DeliveryPanel({
     await sleep(300);
     if (failed.length) {
       const idx = results.findIndex((r) => !r.pass && r.kind !== "manual");
-      log({ who: "nearsignet.testnet", msg: `submit_verification(pass=false, ${order.criteria[idx]?.label ?? "delivery"})`, res: "NEAR stays locked in escrow", kind: "near" });
+      log({ who: "nearsignet-protocol.testnet", msg: `submit_verification(pass=false, ${order.criteria[idx]?.label ?? "delivery"})`, res: "NEAR stays locked in escrow", kind: "near" });
       setStatus("revision");
     } else {
-      log({ who: "nearsignet.testnet", msg: "submit_verification(all_passed=true)", res: "72h client review started", kind: "near" });
+      log({ who: "nearsignet-protocol.testnet", msg: "submit_verification(all_passed=true)", res: "72h client review started", kind: "near" });
       setStatus("review");
     }
     setBusy("");

@@ -1,14 +1,14 @@
 /* =========================================================
    NearSignet — Seeded Cross-Border Escrow Orders & Rule Parser
    Order NSG-2033 links directly to the real live escrow settled on
-   `nearsignet.testnet` (NEAR Testnet).
+   `nearsignet-protocol.testnet` (NEAR Testnet).
    ========================================================= */
 
 export type Direction = "from_client" | "to_client" | "by_me";
 export type Status =
   | "request"          // client requested work, awaiting freelancer acceptance
   | "awaiting_payment" // terms hashed, awaiting NEAR escrow deposit
-  | "in_escrow"        // NEAR locked in nearsignet.testnet, freelancer working
+  | "in_escrow"        // NEAR locked in nearsignet-protocol.testnet, freelancer working
   | "verifying"        // deliverable uploaded, scoped AI verifier inspecting
   | "revision"         // machine check flagged an unmet rule
   | "review"           // all criteria verified, 72h on-chain review timer running
@@ -155,8 +155,8 @@ export const ORDERS: Order[] = [
     id: "NSG-2033",
     direction: "from_client",
     title: "Storefront Header + Verified Emblem",
-    client: { name: "Liam Carter", nearAccount: "liam-client.testnet", initials: "LC", city: "London", country: "GB", color: "var(--mint-l)" },
-    amount: 75, nearAmount: 1.5, currency: "USD", due: "2026-11-12", created: "2026-11-02",
+    client: { name: "Liam Carter", nearAccount: "liam.nearsignet-protocol.testnet", initials: "LC", city: "London", country: "GB", color: "var(--mint-l)" },
+    amount: 75, nearAmount: 0.5, currency: "USD", due: "2026-11-12", created: "2026-11-02",
     status: "paid",
     brief: "Marketplace header 3360×840 and a 500×500 square avatar emblem. Emerald & obsidian palette.",
     criteria: [
@@ -164,9 +164,14 @@ export const ORDERS: Order[] = [
       { label: "Emblem 500 × 500", rule: "w == h == 500", icon: "ruler" },
     ],
     accent: "var(--mint)", product: "bag",
-    termsHash: "sha256:4b89f02dc91e8a77",
-    txHash: "GM3AHKng3oHVbF3djXaYZouKWwtBKZU1mYGxB7onknVF",
-    sealId: "SEAL-NSG-2033-034003",
+    termsHash: "sha256:9f44d8e2c1a730b5",
+    txHash: "6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a",
+    txHashes: {
+      fund: "EquEciRe5UtZgmCXyksqmnyL3br4rNeK1YUE31fYWkAX",
+      verify: "48zAoThDXD31LpRYYFdXY62HVJ39sNgTJGxg3QUJQttn",
+      release: "6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a",
+    },
+    sealId: "SEAL-NSG-2033-597675",
   },
   {
     id: "NSG-2045",

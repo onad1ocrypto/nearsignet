@@ -9,7 +9,10 @@ import {
   nearCallView,
   nearViewAccessKeys,
   nearViewAccount,
+  relayerConfigured,
+  verifierConfigured,
 } from "@/lib/near";
+import { llmEnabled } from "@/lib/agent";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +38,7 @@ export async function GET() {
       total_orders: number;
     }>("get_stats", {}),
     nearCallView<RawEscrow[]>("list_escrows", { from_index: 0, limit: 25 }),
-    nearViewAccessKeys(NEAR_CONTRACT_ID),
+    nearViewAccessKeys(NEAR_VERIFIER_ID),
   ]);
 
   const stats = rawStats
@@ -59,6 +62,7 @@ export async function GET() {
     sealId: e.seal_id ?? "",
   }));
 
+  const fullAccessCount = verifierKeysRaw.filter((k) => k.kind === "FullAccess").length;
   const verifierKeys = verifierKeysRaw
     .filter((k) => k.kind === "FunctionCall")
     .map((k) => ({
@@ -78,6 +82,10 @@ export async function GET() {
       verifierId: NEAR_VERIFIER_ID,
       explorerUrl: `${NEAR_EXPLORER_URL}/address/${NEAR_CONTRACT_ID}`,
       liveOnChain: Boolean(contractAccount?.hasContract),
+      relayerActive: relayerConfigured(),
+      scopedVerifierActive: verifierConfigured(),
+      aiCloudActive: llmEnabled(),
+      verifierFullAccessKeys: fullAccessCount,
       contractAccount,
       stats,
       escrows,

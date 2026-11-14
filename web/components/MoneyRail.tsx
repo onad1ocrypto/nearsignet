@@ -6,7 +6,7 @@ import { initialsOf, ME_COLOR, useMe } from "@/lib/me";
 import { Avatar, Country } from "./ui";
 import { Icon } from "./Icon";
 
-/** 0 = client wallet, 1 = nearsignet.testnet vault, 2 = freelancer wallet */
+/** 0 = client wallet, 1 = nearsignet-protocol.testnet vault, 2 = freelancer wallet */
 export function moneyPos(s: Status): 0 | 1 | 2 {
   if (s === "paid") return 2;
   if (s === "in_escrow" || s === "verifying" || s === "revision" || s === "review") return 1;
@@ -94,7 +94,7 @@ export function MoneyRail({ order, status }: { order: Order; status: Status }) {
           <Avatar p={order.client} size={44} />
         </Node>
 
-        <Node i={1} name={t("rail.escrow")} sub={<>nearsignet.testnet</>}>
+        <Node i={1} name={t("rail.escrow")} sub={<>nearsignet-protocol.testnet</>}>
           <span
             className="avatar"
             style={{

@@ -1,37 +1,45 @@
 /* =========================================================
    NearSignet — Core NEAR Protocol RPC, Contract & Intents Layer
    Connects directly to NEAR Testnet (`https://rpc.testnet.near.org`)
-   and the deployed `nearsignet.testnet` smart contract.
+   and the deployed `nearsignet-protocol.testnet` smart contract.
    ========================================================= */
 
 import { createHash } from "node:crypto";
 
-export const NEAR_NETWORK_ID = process.env.NEXT_PUBLIC_NEAR_NETWORK_ID || "testnet";
+export const NEAR_NETWORK_ID =
+  process.env.NEXT_PUBLIC_NEAR_NETWORK_ID || process.env.NEXT_PUBLIC_NEAR_NETWORK || "testnet";
 export const NEAR_RPC_URL =
   process.env.NEAR_RPC_URL ||
+  process.env.NEXT_PUBLIC_NEAR_RPC_URL ||
   (NEAR_NETWORK_ID === "mainnet" ? "https://rpc.mainnet.near.org" : "https://rpc.testnet.near.org");
-export const NEAR_CONTRACT_ID = process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "nearsignet.testnet";
-export const NEAR_VERIFIER_ID = process.env.NEXT_PUBLIC_NEAR_VERIFIER_ID || "verifier.nearsignet.testnet";
+export const NEAR_CONTRACT_ID =
+  process.env.NEXT_PUBLIC_NEAR_CONTRACT_ID || "nearsignet-protocol.testnet";
+export const NEAR_VERIFIER_ID =
+  process.env.NEXT_PUBLIC_NEAR_VERIFIER_ID || `verifier.${NEAR_CONTRACT_ID}`;
+export const NEAR_FREELANCER_DEFAULT =
+  process.env.NEXT_PUBLIC_NEAR_FREELANCER_ID || `raka.${NEAR_CONTRACT_ID}`;
+export const NEAR_CLIENT_DEFAULT =
+  process.env.NEXT_PUBLIC_NEAR_CLIENT_ID || `liam.${NEAR_CONTRACT_ID}`;
 export const NEAR_EXPLORER_URL =
   NEAR_NETWORK_ID === "mainnet" ? "https://nearblocks.io" : "https://testnet.nearblocks.io";
 export const MY_NEAR_WALLET_URL =
   NEAR_NETWORK_ID === "mainnet" ? "https://app.mynearwallet.com" : "https://testnet.mynearwallet.com";
 
-/** Real verified NEAR Testnet deployment hashes recorded during deployment of `nearsignet.testnet`. */
+/** Real verified NEAR Testnet deployment hashes recorded on `nearsignet-protocol.testnet`. */
 export const LIVE_TESTNET_ARTIFACTS = {
-  contractAccount: "nearsignet.testnet",
-  verifierAccount: "verifier.nearsignet.testnet",
-  freelancerAccount: "raka-studio.testnet",
-  clientAccount: "liam-client.testnet",
-  scopedAgentPublicKey: "ed25519:7oHoeaUfJivi24jQS1E329UHnxdjbR6EReeEciETki1t",
+  contractAccount: "nearsignet-protocol.testnet",
+  verifierAccount: "verifier.nearsignet-protocol.testnet",
+  freelancerAccount: "raka.nearsignet-protocol.testnet",
+  clientAccount: "liam.nearsignet-protocol.testnet",
+  scopedAgentPublicKey: "ed25519:D31UDCjgL8S7o8QJUXTYQ2KR1N5CVyvwYhh9MjjUAKEP",
   txHashes: {
-    deployContract: "GBmnaHB3Z1QT4UxqLxNm4Cx3awwpkNzzdF9Pp6XZLcXv",
-    createVerifierSubaccount: "DkwMt4TUoSF49SNdKu4zxKjV6xf4bYABCyhPximvQLZN",
-    addScopedFunctionCallKey: "E5NwjcjgJwVLe1G2JDXSvpA7Tf5GG31JDycfiT99eUrp",
-    initContract: "3XJ8A1unaRiu5atABQUXWeCaqveJ4FHR9KxPERhsftMp",
-    sampleFund2033: "D3h4bQb6JNcHV1P7KBTimFrgVRiuHZtXEHYhjo9ogBjH",
-    sampleVerify2033: "6E28kcS2ph2gUQFwouqqeUaBnrgDEowNktmxsnEmXgu9",
-    sampleSeal2033: "GM3AHKng3oHVbF3djXaYZouKWwtBKZU1mYGxB7onknVF",
+    deployContract: "DfkegmyKGXutnFByGXThmJSsdemovXTZA1C33M2oofG5",
+    createVerifierSubaccount: "AGsw2jpbzpsxEsENMdPGLE5q2QLyEycTiHYPMh4PD3Uw",
+    addScopedFunctionCallKey: "7NYp3vQ7qthVy9YHsr75wut3m3zvAUTVyLzDyjkWm3tm",
+    initContract: "5VpVFYx1eoPaup6F542eNy7vi6gvqaGsZf1Vobw4ZkQE",
+    sampleFund2033: "EquEciRe5UtZgmCXyksqmnyL3br4rNeK1YUE31fYWkAX",
+    sampleVerify2033: "48zAoThDXD31LpRYYFdXY62HVJ39sNgTJGxg3QUJQttn",
+    sampleSeal2033: "6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a",
   },
 } as const;
 
@@ -136,7 +144,7 @@ export interface AccessKeySummary {
   allowanceNear?: string;
 }
 
-export async function nearViewAccessKeys(accountId = NEAR_CONTRACT_ID): Promise<AccessKeySummary[]> {
+export async function nearViewAccessKeys(accountId = NEAR_VERIFIER_ID): Promise<AccessKeySummary[]> {
   try {
     const r = await nearRpc<{
       keys: {
@@ -197,13 +205,14 @@ export async function nearCallView<T>(
   }
 }
 
-/**
- * Optional server-side relayer execution: if NEAR_SIGNER_ACCOUNT_ID and NEAR_SIGNER_PRIVATE_KEY
- * are set in `.env.local`, executes a real signed transaction on NEAR Testnet.
- * Never requires keys to explore or test the app.
- */
 export const relayerConfigured = () =>
   Boolean(process.env.NEAR_SIGNER_ACCOUNT_ID && process.env.NEAR_SIGNER_PRIVATE_KEY);
+
+export const verifierConfigured = () =>
+  Boolean(process.env.NEAR_VERIFIER_SCOPED_KEY);
+
+export const freelancerRelayerConfigured = () =>
+  Boolean(process.env.NEAR_FREELANCER_ACCOUNT_ID && process.env.NEAR_FREELANCER_PRIVATE_KEY);
 
 export async function nearRelayerCall({
   signerId,
@@ -242,9 +251,51 @@ export async function nearRelayerCall({
 }
 
 /**
- * Queries NEAR Intents 1-Click API (`dry: true` quote preview) when reachable,
- * falling back to a transparent reference quote so cross-chain client UX works offline too.
+ * Signs `submit_verification` or `propose_mediation` LIVE ON-CHAIN using ONLY the
+ * Scoped Function-Call Access Key on `verifier.<contract>` (0 FullAccess keys!).
  */
+export async function nearScopedVerifierCall({
+  methodName,
+  args,
+  gas = "60000000000000",
+}: {
+  methodName: "submit_verification" | "propose_mediation";
+  args: Record<string, unknown>;
+  gas?: string;
+}): Promise<{ txHash: string; explorerUrl: string }> {
+  const secret = process.env.NEAR_VERIFIER_SCOPED_KEY || "";
+  if (!secret) throw new Error("NEAR_VERIFIER_SCOPED_KEY not configured");
+  return nearRelayerCall({
+    signerId: NEAR_VERIFIER_ID,
+    privateKey: secret,
+    methodName,
+    args,
+    attachedDepositYocto: "0",
+    gas,
+  });
+}
+
+/**
+ * Recycles sandbox payout from demo freelancer back to demo client relayer so the
+ * Judge Sandbox Testnet pool never depletes across hundreds of live judge runs.
+ */
+export async function recycleSandboxNear(amountNear = "0.09"): Promise<void> {
+  if (!freelancerRelayerConfigured() || !relayerConfigured()) return;
+  try {
+    const nearAPI = await import("near-api-js");
+    const fromId = process.env.NEAR_FREELANCER_ACCOUNT_ID!;
+    const fromKey = process.env.NEAR_FREELANCER_PRIVATE_KEY!;
+    const toId = process.env.NEAR_SIGNER_ACCOUNT_ID!;
+    const keyStore = new nearAPI.keyStores.InMemoryKeyStore();
+    await keyStore.setKey(NEAR_NETWORK_ID, fromId, nearAPI.KeyPair.fromString(fromKey as `ed25519:${string}`));
+    const near = await nearAPI.connect({ networkId: NEAR_NETWORK_ID, keyStore, nodeUrl: NEAR_RPC_URL });
+    const acct = await near.account(fromId);
+    await acct.sendMoney(toId, BigInt(nearToYocto(amountNear)));
+  } catch {
+    /* non-critical background recycle */
+  }
+}
+
 export interface IntentsQuoteResult {
   originChain: string;
   originToken: string;
@@ -320,7 +371,6 @@ export async function getCrossChainIntentsQuote(originKey: string, usdAmount: nu
   }
   const originUnits = Math.round(tokenAmt * 10 ** Math.min(meta.decimals, 8)).toString();
 
-  // Attempt live dry quote against NEAR Intents 1-Click endpoint
   try {
     const ctl = new AbortController();
     const t = setTimeout(() => ctl.abort(), 4500);
@@ -364,7 +414,7 @@ export async function getCrossChainIntentsQuote(originKey: string, usdAmount: nu
       }
     }
   } catch {
-    /* Mainnet 1-Click solver unreachable or dry quote declined -> deterministic reference quote */
+    /* Mainnet 1-Click solver unreachable -> deterministic reference quote */
   }
 
   return {
@@ -383,4 +433,3 @@ export const nearExplorerAccount = (accountId: string) =>
   `https://testnet.nearblocks.io/address/${encodeURIComponent(accountId)}`;
 export const nearExplorerTx = (txHash: string) =>
   `https://testnet.nearblocks.io/txns/${encodeURIComponent(txHash)}`;
-

@@ -10,6 +10,13 @@ import {
   type MeProfile,
   type MeSocials,
 } from "./profile";
+import { NEAR_CONTRACT_ID } from "./near";
+import {
+  connectNearBrowserWallet,
+  disconnectNearBrowserWallet,
+  getActiveWalletAccount,
+  type SupportedWalletId,
+} from "./wallet";
 
 export { countryName, hostOf, locationOf, maskAccount, maskId, MAX_PORTFOLIO, normalizeUrl, SOCIAL_KEYS } from "./profile";
 export type { MePortfolioItem, MeProfile, MeSocials, SocialKey } from "./profile";
@@ -47,7 +54,7 @@ export function profileFromNear(n: NearIdentity): MeProfile {
     nearAccount: n.accountId,
     city: "",
     country: "ID",
-    bio: `Verified NEAR ${n.network} freelancer (${n.accountId}). Escrows lock in nearsignet.testnet and settle directly on-chain.`,
+    bio: `Verified NEAR ${n.network} account (${n.accountId}). Escrows lock in ${NEAR_CONTRACT_ID} and settle directly on-chain.`,
     tags: ["Web3 Design", "Motion", "Smart Contracts"],
   };
 }
@@ -72,6 +79,9 @@ interface Ctx {
   session: Session;
   sessionReady: boolean;
   signedIn: boolean;
+  walletConnected: boolean;
+  walletId: string | null;
+  connectWallet: (walletId: SupportedWalletId, successUrl?: string) => Promise<{ ok: boolean; redirected?: boolean; error?: string }>;
   connectNearAccount: (accountId: string) => Promise<{ ok: boolean; error?: string }>;
   connectNear: (accountId: string) => Promise<{ ok: boolean; error?: string }>;
   signInAsGuest: () => Promise<void>;
@@ -96,12 +106,47 @@ export function MeProvider({ children }: { children: ReactNode }) {
   const [me, setMeState] = useState<MeProfile>(ME_DEFAULT);
   const [session, setSession] = useState<Session>({ mode: "guest" });
   const [guestActive, setGuestActive] = useState(false);
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletId, setWalletId] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [justSignedOut, setJustSignedOut] = useState(false);
+
+  const connectNearAccount = useCallback(async (accountId: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const r = await fetch("/api/auth/near", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accountId: accountId.trim().toLowerCase() }),
+      });
+      const j = (await r.json()) as { ok?: boolean; session?: Session; error?: string };
+      if (!r.ok || !j.ok || !j.session) {
+        return { ok: false, error: j.error || "Could not verify NEAR account" };
+      }
+      setGuestActive(false);
+      setSession(j.session);
+      setMeState(readProfile(j.session));
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Network error" };
+    }
+  }, []);
 
   useEffect(() => {
     let alive = true;
     (async () => {
+      // 1. Check if a real browser NEAR wallet (MyNearWallet / Meteor) is connected!
+      const activeWallet = await getActiveWalletAccount();
+      if (alive && activeWallet?.accountId) {
+        setWalletConnected(true);
+        setWalletId(activeWallet.walletId);
+        const synced = await connectNearAccount(activeWallet.accountId);
+        if (synced.ok && alive) {
+          setSessionReady(true);
+          return;
+        }
+      }
+
+      // 2. Otherwise check server session cookie or Sandbox flag
       let s: Session = { mode: "guest" };
       try {
         const r = await fetch("/api/auth/session", { cache: "no-store" });
@@ -115,7 +160,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
       setSessionReady(true);
     })();
     return () => { alive = false; };
-  }, []);
+  }, [connectNearAccount]);
 
   const setMe = useCallback(
     (p: MeProfile) => {
@@ -150,32 +195,33 @@ export function MeProvider({ children }: { children: ReactNode }) {
     setMe(def);
   }, [session, setMe]);
 
-  const connectNearAccount = useCallback(async (accountId: string): Promise<{ ok: boolean; error?: string }> => {
-    try {
-      const r = await fetch("/api/auth/near", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ accountId: accountId.trim().toLowerCase() }),
-      });
-      const j = (await r.json()) as { ok?: boolean; session?: Session; error?: string };
-      if (!r.ok || !j.ok || !j.session) {
-        return { ok: false, error: j.error || "Could not verify NEAR account" };
+  const connectWallet = useCallback(
+    async (wId: SupportedWalletId, successUrl?: string): Promise<{ ok: boolean; redirected?: boolean; error?: string }> => {
+      try {
+        const out = await connectNearBrowserWallet(wId, successUrl);
+        if (out.accountId) {
+          setWalletConnected(true);
+          setWalletId(wId);
+          const res = await connectNearAccount(out.accountId);
+          return res;
+        }
+        return { ok: true, redirected: true };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : "Wallet connection cancelled" };
       }
-      setGuestActive(false);
-      setSession(j.session);
-      setMeState(readProfile(j.session));
-      return { ok: true };
-    } catch (e) {
-      return { ok: false, error: e instanceof Error ? e.message : "Network error" };
-    }
-  }, []);
+    },
+    [connectNearAccount]
+  );
 
   const signOut = useCallback(async () => {
+    await disconnectNearBrowserWallet();
     await endServerSession();
     try {
       lsRemove(GUEST_ACTIVE_KEY);
       lsRemove(keyOf("guest"));
     } catch {}
+    setWalletConnected(false);
+    setWalletId(null);
     setGuestActive(false);
     setSession({ mode: "guest" });
     setMeState(ME_DEFAULT);
@@ -183,10 +229,13 @@ export function MeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInAsGuest = useCallback(async () => {
+    await disconnectNearBrowserWallet();
     await endServerSession();
     try {
       lsSet(GUEST_ACTIVE_KEY, "1");
     } catch {}
+    setWalletConnected(false);
+    setWalletId(null);
     setGuestActive(true);
     setSession({ mode: "guest" });
     setMeState(readProfile({ mode: "guest" }));
@@ -204,6 +253,9 @@ export function MeProvider({ children }: { children: ReactNode }) {
       session,
       sessionReady,
       signedIn,
+      walletConnected,
+      walletId,
+      connectWallet,
       connectNearAccount,
       connectNear: connectNearAccount,
       signInAsGuest,
@@ -212,7 +264,23 @@ export function MeProvider({ children }: { children: ReactNode }) {
       justSignedOut,
       clearJustSignedOut,
     }),
-    [me, setMe, updateMe, resetMe, session, sessionReady, signedIn, connectNearAccount, signInAsGuest, signOut, justSignedOut, clearJustSignedOut]
+    [
+      me,
+      setMe,
+      updateMe,
+      resetMe,
+      session,
+      sessionReady,
+      signedIn,
+      walletConnected,
+      walletId,
+      connectWallet,
+      connectNearAccount,
+      signInAsGuest,
+      signOut,
+      justSignedOut,
+      clearJustSignedOut,
+    ]
   );
   return <MeCtx.Provider value={value}>{children}</MeCtx.Provider>;
 }

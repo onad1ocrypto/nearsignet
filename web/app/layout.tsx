@@ -35,7 +35,7 @@ export const metadata: Metadata = {
     siteName: "NearSignet",
     title: "NearSignet — AI-Verified Freelance Escrow on NEAR Protocol",
     description:
-      "Turn plain briefs into checkable rules, lock NEAR in nearsignet.testnet, verify files with Orin AI, and stamp your deal SEALED on-chain.",
+      "Turn plain briefs into checkable rules, lock NEAR in nearsignet-protocol.testnet, verify files with Orin AI, and stamp your deal SEALED on-chain.",
   },
   twitter: {
     card: "summary_large_image",
