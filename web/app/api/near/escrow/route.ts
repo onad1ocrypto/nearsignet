@@ -99,6 +99,20 @@ export async function POST(req: Request) {
   );
   const passedCount = Math.min(totalCount, Math.max(0, Number(b.passedCount ?? b.passed ?? totalCount)));
 
+  // Diagnostics: a demo run must never look on-chain when the server has no signer.
+  if (String(req.headers.get("x-ns-diagnostics") || "") === "1") {
+    return NextResponse.json({
+      ok: true,
+      diagnostics: {
+        relayerActive: relayerConfigured(),
+        verifierActive: verifierConfigured(),
+        freelancerRelayerActive: freelancerRelayerConfigured(),
+        contractId: NEAR_CONTRACT_ID,
+        verifierId: NEAR_VERIFIER_ID,
+      },
+    });
+  }
+
   const relayerClient = process.env.NEAR_SIGNER_ACCOUNT_ID || "";
   const relayerFreelancer = process.env.NEAR_FREELANCER_ACCOUNT_ID || NEAR_FREELANCER_DEFAULT;
   const requestedFreelancer = String(b.freelancerId || b.freelancer || relayerFreelancer).trim().toLowerCase();
@@ -354,6 +368,11 @@ export async function POST(req: Request) {
     ok: true,
     mode: "offline-local",
     simulated: true,
+    degraded: {
+      relayerActive: relayerConfigured(),
+      verifierActive: verifierConfigured(),
+      note: "The server has no signer key for this action, so nothing was broadcast on NEAR.",
+    },
     onchainOrderId: rawId,
     contractId: NEAR_CONTRACT_ID,
     verifierId: NEAR_VERIFIER_ID,
