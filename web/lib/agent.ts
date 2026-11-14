@@ -33,23 +33,23 @@ const LLM_URL = () => {
 const LLM_MODEL = () =>
   process.env.NEAR_AI_MODEL ||
   process.env.LLM_MODEL ||
-  (isNearAi() ? "deepseek-ai/DeepSeek-V4.1-Flash-1017" : "gpt-4o-mini");
+  (isNearAi() ? "anthropic/claude-haiku-5-5" : "gpt-4o-mini");
 
 const ICONS = ["file", "image", "ruler", "palette", "clock", "text"] as const;
 
-const LLM_ATTEMPTS_PER_MODEL = 2;
-const LLM_ATTEMPT_TIMEOUT_MS = 18_000;
-const LLM_TOTAL_BUDGET_MS = 45_000;
-const PREVIEW_PAUSE_MS = 400;
+const LLM_ATTEMPTS_PER_MODEL = 1;
+const LLM_ATTEMPT_TIMEOUT_MS = 14_000;
+const LLM_TOTAL_BUDGET_MS = 28_000;
+const PREVIEW_PAUSE_MS = 300;
 
 function llmModels(): string[] {
   const list = (process.env.LLM_MODELS ?? "").split(",").map((m) => m.trim()).filter(Boolean);
   if (list.length) return list.slice(0, 4);
   if (isNearAi() && !process.env.NEAR_AI_MODEL && !process.env.LLM_MODEL) {
     return [
-      "deepseek-ai/DeepSeek-V4.1-Flash-1017",
       "anthropic/claude-haiku-5-5",
-      "z-ai/glm-5.3-flash",
+      "openai/gpt-6-luna",
+      "deepseek-ai/DeepSeek-V4.1-Flash-1017",
     ];
   }
   return [LLM_MODEL()];
@@ -67,7 +67,7 @@ async function llmAsk(
   try {
     const payload: Record<string, unknown> = {
       model,
-      max_tokens: 800,
+      max_tokens: 2048,
       messages: [
         { role: "system", content: system },
         { role: "user", content: user },
@@ -237,7 +237,7 @@ const SIGNALS: { key: string; weight: number; hard?: boolean; re: RegExp }[] = [
 const MEDIATOR_SYSTEM = `You are the Scoped Mediator Agent of NearSignet on NEAR Protocol.
 You propose basis-point splits for funds held in smart-contract escrow (nearsignet-protocol.testnet) when a delivery is disputed.
 Note: Your Function-Call Access Key can ONLY propose splits; human parties/contract rules execute transfers.
-Rely on machine-checkable evidence first, claim text second. Reply with ONLY JSON:
+Rely on machine-checkable evidence first, claim text second. Keep reasons (2-3 short items) and evidence (3-4 short items) concise. Reply with ONLY JSON:
 {"decision":"release"|"refund_partial"|"refund_full"|"escalate","percent":number,"confidence":number,"reasons":[string],"evidence":[string],"nextStep":string}`;
 
 export async function mediate(input: MediateInput): Promise<MediateVerdict> {
