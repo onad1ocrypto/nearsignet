@@ -4,7 +4,7 @@
 
    Regression under guard: `signAndSendTransaction` used to receive near-api-js
    `Action` CLASS INSTANCES (transactions.functionCall(...)). Those serialise to
-   `{}` over the wallet bridge, so Meteor/Intear/HOT received an empty payload and
+   `{}` over the wallet bridge, so the wallet received an empty payload and
    displayed no confirmation prompt at all — "connected but nothing happens".
 
    This test proves:

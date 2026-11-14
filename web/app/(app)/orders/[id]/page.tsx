@@ -684,7 +684,7 @@ function NearDepositPanel({
   const lockEscrow = async () => {
     setBusy(true);
     try {
-      // 1. REAL BROWSER WALLET SIGNING (Meteor / HERE / Sender / Nightly)
+      // 1. REAL BROWSER WALLET SIGNING (Meteor / Nightly — the testnet-capable survivors)
       if (walletConnected) {
         const chain = await probeEscrow(onchainId);
         if (chain.exists) {

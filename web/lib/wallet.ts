@@ -8,13 +8,20 @@ if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: typeof Buffe
   (globalThis as { Buffer?: typeof Buffer }).Buffer = Buffer;
 }
 
-export type SupportedWalletId =
-  | "meteor-wallet"
-  | "here-wallet"
-  | "sender"
-  | "nightly"
-  | "intear-wallet"
-  | "hot-wallet";
+/**
+ * Only wallets that are BOTH alive and able to sign on NEAR testnet.
+ *
+ * Verified Nov 2026 against the official NEAR wallet hub
+ * (wallet.near.org, repo NEAR-DevHub/wallet-landing-near): the list now holds
+ * NEAR Mobile, Meteor, HOT, Ethereum wallets, Intear and Nightly.
+ *  - HERE Wallet was merged into HOT and no longer exists as its own wallet
+ *    (its web app 404s); dropped.
+ *  - Sender shut down (hub PR #11: "removed Sender wallet as they shutdown"); dropped.
+ *  - Intear kept out: its standalone testnet support is what made "Sign & Lock"
+ *    look broken for the user.
+ *  - HOT is mainnet-only for signing, so it must never be a testnet path here.
+ */
+export type SupportedWalletId = "meteor-wallet" | "nightly";
 
 /**
  * Methods the dApp ever asks the browser wallet to sign. Requesting a SCOPED
@@ -26,14 +33,36 @@ export const WALLET_METHOD_NAMES = ["create_and_fund_escrow", "approve_and_relea
 
 let selectorPromise: Promise<WalletSelector> | null = null;
 let lastWalletId: SupportedWalletId | null = null;
-export const KNOWN_WALLET_IDS: SupportedWalletId[] = [
-  "meteor-wallet",
-  "here-wallet",
-  "sender",
-  "nightly",
-  "intear-wallet",
-  "hot-wallet",
-];
+export const KNOWN_WALLET_IDS: SupportedWalletId[] = ["meteor-wallet", "nightly"];
+
+/**
+ * Honest availability probe so the UI never invents a "Connect" button for a
+ * wallet the browser cannot reach. Meteor signs through @meteorwallet/sdk
+ * (works with the extension or the web wallet); Nightly needs its injected
+ * provider.
+ */
+export function walletAvailability(
+  id: SupportedWalletId
+): { ok: boolean; hint: string; installUrl?: string } {
+  if (typeof window === "undefined") return { ok: true, hint: "Detecting…" };
+  if (id === "meteor-wallet") {
+    const injected = Boolean(
+      (window as unknown as Record<string, unknown>).meteorWalletNear ||
+        (window as unknown as Record<string, unknown>).meteorWallet
+    );
+    return {
+      ok: true,
+      hint: injected ? "Extension detected" : "Extension or web",
+      installUrl: injected ? undefined : "https://meteorwallet.app",
+    };
+  }
+  const injected = Boolean((window as unknown as Record<string, unknown>).nightly);
+  return {
+    ok: injected,
+    hint: injected ? "Extension detected" : "Extension not detected",
+    installUrl: injected ? undefined : "https://wallet.nightly.app/download",
+  };
+}
 const LAST_WALLET_KEY = "nearsignet.walletId";
 
 function rememberWallet(id: string | null | undefined) {
@@ -66,35 +95,15 @@ export async function getNearSelector(): Promise<WalletSelector | null> {
       const [
         { setupWalletSelector },
         { setupMeteorWallet },
-        { setupHereWallet },
-        { setupSender },
         { setupNightly },
-        { setupIntearWallet },
-        { setupHotWallet },
       ] = await Promise.all([
         import("@near-wallet-selector/core"),
         import("@near-wallet-selector/meteor-wallet"),
-        import("@near-wallet-selector/here-wallet"),
-        import("@near-wallet-selector/sender"),
         import("@near-wallet-selector/nightly"),
-        import("@near-wallet-selector/intear-wallet"),
-        import("@near-wallet-selector/hot-wallet"),
       ]);
-      /**
-       * Testnet-capable wallets first (extension + web): Meteor, HERE, Sender, Nightly
-       * all sign on testnet. Intear and HOT are kept as secondary options — Intear's
-       * testnet support is unreliable and HOT is effectively mainnet-only.
-       */
       return setupWalletSelector({
         network: NEAR_NETWORK_ID === "mainnet" ? "mainnet" : "testnet",
-        modules: [
-          setupMeteorWallet(),
-          setupHereWallet(),
-          setupSender(),
-          setupNightly(),
-          setupIntearWallet(),
-          setupHotWallet(),
-        ],
+        modules: [setupMeteorWallet(), setupNightly()],
       });
     })();
   }
@@ -161,7 +170,7 @@ export async function disconnectNearBrowserWallet(): Promise<void> {
 /**
  * Re-attach the wallet selector to a session that exists in the wallet extension
  * but not yet in this page instance (e.g. after navigating to another route).
- * Meteor / Intear / HOT all expose an instant `signIn` when already authorised
+ * Meteor / Nightly expose an instant `signIn` when already authorised
  * for the same contract, so this never shows a second approval prompt.
  */
 async function ensureWalletSession(
@@ -245,7 +254,7 @@ export async function signNearWalletCall({
 
   let wallet = await selector.wallet(active.walletId as SupportedWalletId);
   if (typeof (wallet as unknown as { signAndSendTransaction?: unknown }).signAndSendTransaction !== "function") {
-    throw new Error("This wallet does not expose signAndSendTransaction. Pick Meteor, Intear or HOT Wallet.");
+    throw new Error("This wallet does not expose signAndSendTransaction. Pick Meteor Wallet or Nightly Wallet.");
   }
 
   const params = {

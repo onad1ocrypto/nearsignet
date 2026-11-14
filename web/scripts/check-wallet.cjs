@@ -68,5 +68,21 @@ ok("wallet session is remembered across navigations", () => {
   assert.match(walletTs, /walletSessionHint/);
 });
 
+// --- wallet roster: only alive + testnet-capable wallets may ship -------------
+ok("wallet roster is exactly Meteor + Nightly (HERE/Sender shut down, Intear/HOT cannot sign testnet)", () => {
+  assert.match(walletTs, /export type SupportedWalletId = "meteor-wallet" \| "nightly";/);
+  for (const dead of ["here-wallet", "sender", "intear-wallet", "hot-wallet"]) {
+    assert.ok(
+      !walletTs.includes(`"${dead}"`),
+      `dead wallet ${dead} must not appear as a wallet id`
+    );
+    assert.ok(
+      !walletTs.includes(`@near-wallet-selector/${dead}`),
+      `dead wallet module ${dead} must not be imported`
+    );
+  }
+  assert.match(walletTs, /modules: \[setupMeteorWallet\(\), setupNightly\(\)\]/);
+});
+
 console.log(checks.join("\n"));
 console.log(`\n✓ Wallet signing invariants verified (${checks.length}/${checks.length} assertions passed).\n`);

@@ -135,7 +135,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     (async () => {
-      // 1. Check if a real browser NEAR wallet (Meteor / Intear / HOT) is connected!
+      // 1. Check if a real browser NEAR wallet (Meteor / Nightly) is connected!
       const activeWallet = await getActiveWalletAccount();
       if (alive && activeWallet?.accountId) {
         setWalletConnected(true);

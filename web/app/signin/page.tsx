@@ -6,7 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useMe } from "@/lib/me";
 import { NEAR_CONTRACT_ID, nearExplorerAccount } from "@/lib/near";
-import { type SupportedWalletId } from "@/lib/wallet";
+import { walletAvailability, type SupportedWalletId } from "@/lib/wallet";
 import { Icon } from "@/components/Icon";
 import { Orin } from "@/components/Orin";
 import { Kicker, LangSwitch, Logo, ThemeSwitch } from "@/components/ui";
@@ -25,6 +25,15 @@ function SignInInner() {
   const [showFaucet, setShowFaucet] = useState(false);
   const [faucetAddr, setFaucetAddr] = useState("");
   const [faucetRes, setFaucetRes] = useState<{ msg: string; txUrl?: string } | null>(null);
+  const [nightly, setNightly] = useState<{ ok: boolean; hint: string }>({ ok: false, hint: "Detecting…" });
+
+  // Only advertise what this browser can actually reach.
+  useEffect(() => {
+    const probe = () => setNightly(walletAvailability("nightly"));
+    probe();
+    const id = window.setTimeout(probe, 1200);
+    return () => window.clearTimeout(id);
+  }, []);
 
   // If user returned from a wallet callback redirect and is now wallet-authenticated, forward cleanly
   useEffect(() => {
@@ -111,10 +120,10 @@ function SignInInner() {
 
   const meteorHint =
     lang === "id"
-      ? "Testnet yang benar-benar bisa tanda tangan: Meteor, HERE, Sender, Nightly. Intear sering gagal bikin key di testnet, HOT praktis mainnet-only. Setelah connect, cek chip 'SCOPED KEY READY ✓' di halaman order. Akun baru butuh ~1 NEAR Testnet untuk gas."
+      ? "Hanya Meteor dan Nightly yang saya tampilkan: HERE sudah dilebur ke HOT (situsnya 404), Sender sudah tutup, Intear & HOT tidak bisa tanda tangan di testnet. Setelah connect, cek chip 'SCOPED KEY READY ✓' di halaman order. Akun baru butuh ~1 NEAR Testnet untuk gas."
       : lang === "zh"
       ? "Meteor 钱包提示：请先在 Meteor 钱包右上角将网络切换为 Testnet（默认是 Mainnet）。"
-      : "Wallets that can actually sign on testnet: Meteor, HERE, Sender, Nightly. Intear often fails to create a testnet access key and HOT is effectively mainnet-only. After connecting, look for the 'SCOPED KEY READY ✓' chip on the order page. New testnet accounts need ~1 NEAR for gas.";
+      : "Only Meteor and Nightly are listed: HERE was merged into HOT (its web app 404s), Sender shut down, and neither Intear nor HOT can sign testnet transactions. After connecting, look for the 'SCOPED KEY READY ✓' chip on the order page. New testnet accounts need ~1 NEAR for gas.";
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -136,7 +145,7 @@ function SignInInner() {
           <h1 style={{ fontSize: 30 }}>{t("si.title")}</h1>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>{t("si.sub")}</p>
 
-          {/* 1. REAL NEAR WALLET SELECTOR (METEOR PRIMARY + INTEAR + HOT) */}
+          {/* 1. REAL NEAR WALLET SELECTOR — Meteor primary, Nightly when its extension is present */}
           <div
             style={{
               marginTop: 18,
@@ -173,54 +182,35 @@ function SignInInner() {
                 <span className="mono tiny" style={{ opacity: 0.9 }}>Extension / Web ↗</span>
               </button>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {([
-                  { id: "here-wallet", label: "HERE Wallet", icon: "globe", note: "Web / Testnet", color: "rgba(253,224,71,0.34)", bg: "rgba(253,224,71,0.05)", accent: "#fde047" },
-                  { id: "sender", label: "Sender", icon: "globe", note: "Ext / Testnet", color: "rgba(129,140,248,0.34)", bg: "rgba(129,140,248,0.06)", accent: "#a5b4fc" },
-                  { id: "nightly", label: "Nightly", icon: "sparkles", note: "Ext / Testnet", color: "rgba(56,189,248,0.34)", bg: "rgba(56,189,248,0.06)", accent: "#7dd3fc" },
-                  { id: "intear-wallet", label: "Intear", icon: "globe", note: "Web (limited)", color: "rgba(253,224,71,0.34)", bg: "rgba(253,224,71,0.05)", accent: "#fde047" },
-                ] as const).map((w) => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    className="btn"
-                    style={{
-                      justifyContent: "space-between",
-                      borderColor: w.color,
-                      background: w.bg,
-                      padding: "10px 12px",
-                    }}
-                    disabled={!!busy}
-                    onClick={() => void handleWallet(w.id as SupportedWalletId)}
-                  >
-                    <span className="row" style={{ gap: 7, fontSize: 13 }}>
-                      <Icon name={w.icon} size={15} />
-                      <span>{busy === w.id ? "Opening…" : w.label}</span>
-                    </span>
-                    <span className="mono tiny" style={{ color: w.accent }}>{w.note}</span>
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  className="btn"
-                  style={{
-                    justifyContent: "space-between",
-                    borderColor: "rgba(251,146,60,0.34)",
-                    background: "rgba(251,146,60,0.06)",
-                    padding: "10px 12px",
-                    gridColumn: "1 / -1",
-                  }}
-                  disabled={!!busy}
-                  onClick={() => void handleWallet("hot-wallet")}
-                >
-                  <span className="row" style={{ gap: 7, fontSize: 13 }}>
-                    <Icon name="sparkles" size={15} />
-                    <span>{busy === "hot-wallet" ? "Opening…" : "HOT Wallet"}</span>
-                  </span>
-                  <span className="mono tiny" style={{ color: "#fb923c" }}>Mainnet-only · not for testnet txns</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btn"
+                style={{
+                  justifyContent: "space-between",
+                  borderColor: "rgba(129,140,248,0.34)",
+                  background: "rgba(129,140,248,0.06)",
+                  padding: "10px 12px",
+                }}
+                disabled={!!busy}
+                title={
+                  nightly.ok
+                    ? "Sign with the Nightly extension"
+                    : "Nightly extension not detected — this opens the install page"
+                }
+                onClick={() =>
+                  nightly.ok
+                    ? void handleWallet("nightly" as SupportedWalletId)
+                    : window.open("https://wallet.nightly.app/download", "_blank", "noopener")
+                }
+              >
+                <span className="row" style={{ gap: 7, fontSize: 13 }}>
+                  <Icon name="sparkles" size={15} />
+                  <span>{busy === "nightly" ? "Opening…" : "Nightly Wallet"}</span>
+                </span>
+                <span className="mono tiny" style={{ color: nightly.ok ? "#7dd3fc" : "var(--fg-muted)" }}>
+                  {nightly.ok ? "Testnet ✓" : "Install →"}
+                </span>
+              </button>
             </div>
 
             <div
