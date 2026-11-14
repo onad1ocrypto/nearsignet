@@ -1,0 +1,22 @@
+{
+  "name": "nearsignet-escrow-contract",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "NearSignet non-custodial AI-verified freelance escrow smart contract for NEAR Protocol",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/onad1ocrypto/nearsignet.git",
+    "directory": "contract"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "mkdir -p artifacts && near-sdk-js build src/escrow.ts artifacts/nearsignet_escrow.wasm",
+    "test": "node tests/escrow.test.mjs"
+  },
+  "dependencies": {
+    "near-sdk-js": "^2.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}
