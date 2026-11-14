@@ -4,10 +4,22 @@ import type { CSSProperties } from "react";
 
 export type OrinPose = "idle" | "scan" | "sealed" | "wink" | "slam" | "jump";
 
+/**
+ * Cut-out PNGs (transparent background, bottom-edge fade). The JPEG originals were
+ * opaque rectangles, which is why every Orin looked like a pasted-on sticker with a
+ * visible box around the mascot.
+ */
 const POSE_SRC: Record<"idle" | "scan" | "sealed", string> = {
-  idle: "/brand/v6-orin-idle.jpg",
-  scan: "/brand/v6-orin-scan.jpg",
-  sealed: "/brand/v6-orin-sealed.jpg",
+  idle: "/brand/orin-idle.png",
+  scan: "/brand/orin-scan.png",
+  sealed: "/brand/orin-sealed.png",
+};
+
+/** Square transparent head crops, used for the small inline avatars. */
+const POSE_HEAD_SRC: Record<"idle" | "scan" | "sealed", string> = {
+  idle: "/brand/orin-head-idle.png",
+  scan: "/brand/orin-head-scan.png",
+  sealed: "/brand/orin-head-sealed.png",
 };
 
 const POSE_TAG: Record<"idle" | "scan" | "sealed", string> = {
@@ -53,26 +65,25 @@ export function Orin({
           position: "relative",
           width: d,
           height: d,
-          borderRadius: "50%",
-          overflow: "hidden",
           flex: "none",
-          border: actual === "scan" ? "1.5px solid rgba(0,236,151,0.6)" : "1.5px solid rgba(253,224,71,0.55)",
-          boxShadow: "0 6px 18px rgba(0,0,0,0.6), 0 0 16px rgba(0,236,151,0.22)",
-          background: "#05070D",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
           ...style,
         }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={POSE_SRC[actual]}
+          src={POSE_HEAD_SRC[actual]}
           alt={alt}
+          loading="lazy"
+          decoding="async"
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "cover",
-            objectPosition: "50% 40%",
-            transform: "scale(1.32)",
+            objectFit: "contain",
             display: "block",
+            filter: "drop-shadow(0 3px 8px rgba(0,0,0,0.55))",
           }}
         />
       </div>
@@ -83,15 +94,13 @@ export function Orin({
   const h = Math.max(124, Math.round(size * 1.42));
   const w = Math.round(h * 1.44);
 
+  /* Optional soft light bloom behind the mascot — never an outline. */
   const aura =
     actual === "sealed"
-      ? "radial-gradient(ellipse 68% 68% at 50% 52%, rgba(245, 158, 11, 0.28), rgba(185, 28, 28, 0.16) 52%, transparent 76%)"
+      ? "radial-gradient(ellipse 62% 62% at 50% 46%, rgba(245, 158, 11, 0.22), transparent 72%)"
       : actual === "scan" || glow
-        ? "radial-gradient(ellipse 68% 68% at 50% 52%, rgba(0, 236, 151, 0.26), rgba(185, 28, 28, 0.14) 52%, transparent 76%)"
-        : "radial-gradient(ellipse 68% 68% at 50% 52%, rgba(185, 28, 28, 0.28), rgba(0, 236, 151, 0.14) 54%, transparent 76%)";
-
-  const featherMask =
-    "radial-gradient(ellipse 80% 86% at 50% 50%, #000 58%, rgba(0,0,0,0.82) 73%, rgba(0,0,0,0.25) 88%, transparent 100%)";
+        ? "radial-gradient(ellipse 62% 62% at 50% 46%, rgba(0, 236, 151, 0.2), transparent 72%)"
+        : "transparent";
 
   return (
     <div
@@ -110,29 +119,31 @@ export function Orin({
         ...style,
       }}
     >
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: "-8%",
-          background: aura,
-          filter: "blur(10px)",
-        }}
-      />
+      {aura !== "transparent" && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: "-6%",
+            background: aura,
+            filter: "blur(18px)",
+          }}
+        />
+      )}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={POSE_SRC[actual]}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         style={{
           position: "relative",
           width: "100%",
           height: "100%",
-          objectFit: "cover",
-          objectPosition: "50% 38%",
+          objectFit: "contain",
+          objectPosition: "50% 50%",
           display: "block",
-          WebkitMaskImage: featherMask,
-          maskImage: featherMask,
-          filter: "contrast(1.06) saturate(1.08) drop-shadow(0 14px 26px rgba(0,0,0,0.75))",
+          filter: "contrast(1.04) saturate(1.06) drop-shadow(0 12px 22px rgba(0,0,0,0.6))",
         }}
       />
       <span
