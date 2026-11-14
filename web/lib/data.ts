@@ -64,6 +64,102 @@ export const ME: Person = {
   color: "var(--mint-l)",
 };
 
+/**
+ * Extra ready-made jobs so a demo never runs out: one per lifecycle stage
+ * (request → awaiting_payment → in_escrow → verifying → revision → review → paid).
+ * They are plain data; funding any of them on-chain still mints a fresh
+ * `New On-Chain Run` id, which is the whole point of the sandbox.
+ */
+const DEMO_CLIENTS = [
+  { name: "Nadia Rahman", nearAccount: "nadia-kl.testnet", initials: "NR", city: "Kuala Lumpur", country: "MY", color: "var(--mint-l)" },
+  { name: "Marco Bianchi", nearAccount: "marco-mil.testnet", initials: "MB", city: "Milan", country: "IT", color: "var(--lav-l)" },
+  { name: "Yuki Tanaka", nearAccount: "yuki-osa.testnet", initials: "YT", city: "Osaka", country: "JP", color: "var(--sky-l)" },
+  { name: "Ayu Prameswari", nearAccount: "ayu-jkt.testnet", initials: "AP", city: "Jakarta", country: "ID", color: "var(--mint)" },
+  { name: "Ola Berg", nearAccount: "ola-osl.testnet", initials: "OB", city: "Oslo", country: "NO", color: "var(--sky)" },
+] as const;
+
+const DEMO_JOBS: { title: string; amount: number; status: Status; brief: string; criteria: Criterion[]; accent: string; product: ProductKind }[] = [
+  { title: "DeFi Dashboard UI Kit · 24 screens", amount: 480, status: "review",
+    brief: "Dark-mode dashboard kit for a NEAR lending protocol: 24 screens, Figma + React export, mint/slate tokens.",
+    criteria: [
+      { label: "Exactly 24 screens", rule: "count(frames) == 24", icon: "file" },
+      { label: "Figma + React export", rule: "files ∋ {fig, tsx}", icon: "file" },
+      { label: "Colour tokens applied", rule: "vision: palette ⊆ {mint, slate}", icon: "palette" },
+    ], accent: "var(--mint)", product: "bottle" },
+  { title: "Product Explainer Film · 45s", amount: 620, status: "verifying",
+    brief: "45-second explainer for a cross-border payout product. 16:9, English VO, burned-in captions, brand sting at 0-3s.",
+    criteria: [
+      { label: "Exactly 1 video", rule: "count(videos) == 1", icon: "file" },
+      { label: "45s ±3s", rule: "duration ∈ [42, 48]", icon: "clock" },
+      { label: "16:9 horizontal", rule: "aspect == 16:9", icon: "ruler" },
+      { label: "Captions burned in", rule: "vision: captions present", icon: "text" },
+    ], accent: "var(--sky)", product: "reel" },
+  { title: "Brand Icon System · 36 glyphs", amount: 260, status: "revision",
+    brief: "36 monoline icons on a 24px grid, SVG only, 2px stroke, joined by a shared corner radius.",
+    criteria: [
+      { label: "Exactly 36 SVGs", rule: "count(files) == 36", icon: "file" },
+      { label: "24px grid", rule: "grid == 24", icon: "ruler" },
+      { label: "2px stroke", rule: "stroke == 2", icon: "palette" },
+    ], accent: "var(--lav)", product: "candle" },
+  { title: "Technical Whitepaper · 18 pages", amount: 340, status: "in_escrow",
+    brief: "18-page protocol whitepaper with escrow settlement diagrams, LaTeX or InDesign source, PDF/A export.",
+    criteria: [
+      { label: "18 pages ±1", rule: "pages ∈ [17,19]", icon: "file" },
+      { label: "PDF/A export", rule: "mime == application/pdf", icon: "image" },
+      { label: "Diagrams included", rule: "count(diagrams) ≥ 6", icon: "image" },
+    ], accent: "var(--mint)", product: "watch" },
+  { title: "Landing Page Build · 6 sections", amount: 300, status: "awaiting_payment",
+    brief: "Responsive landing page: hero, features, pricing, FAQ, testimonial, footer. Deployed preview required.",
+    criteria: [
+      { label: "6 sections present", rule: "count(sections) == 6", icon: "file" },
+      { label: "Mobile ≤ 390px", rule: "viewport: 390 no overflow", icon: "ruler" },
+      { label: "Lighthouse ≥ 90", rule: "perf ≥ 90", icon: "clock" },
+    ], accent: "var(--sky)", product: "bag" },
+  { title: "Podcast Cover Art · 3 concepts", amount: 180, status: "request",
+    brief: "Three cover-art concepts for a NEAR builder podcast, 3000×3000, layered source files.",
+    criteria: [
+      { label: "3 concepts", rule: "count(images) == 3", icon: "file" },
+      { label: "3000×3000", rule: "w == h == 3000", icon: "ruler" },
+      { label: "Layered source", rule: "files ∋ {psd, fig}", icon: "file" },
+    ], accent: "var(--mint)", product: "mug" },
+  { title: "Motion Logo Sting · 3s loop", amount: 210, status: "paid",
+    brief: "3-second logo sting, seamless loop, alpha channel, 60fps.",
+    criteria: [
+      { label: "Seamless loop", rule: "loop == true", icon: "clock" },
+      { label: "Alpha channel", rule: "alpha == true", icon: "image" },
+      { label: "60 fps", rule: "fps == 60", icon: "clock" },
+    ], accent: "var(--lav)", product: "cap" },
+  { title: "Tokenomics One-Pager · EN + ID", amount: 150, status: "in_escrow",
+    brief: "One-pager explaining emission schedule, in English and Indonesian, print-ready and web-ready.",
+    criteria: [
+      { label: "Two languages", rule: "count(langs) == 2", icon: "text" },
+      { label: "Print + web export", rule: "files ∋ {pdf, png}", icon: "file" },
+      { label: "Charts readable at 100%", rule: "vision: labels legible", icon: "palette" },
+    ], accent: "var(--mint)", product: "plant" },
+];
+
+const demoFromJob = (job: (typeof DEMO_JOBS)[number], i: number): Order => {
+  const client = DEMO_CLIENTS[i % DEMO_CLIENTS.length];
+  const due = new Date(Date.now() + (4 + i * 3) * 86_400_000).toISOString().slice(0, 10);
+  return {
+    id: `NSG-30${String(10 + i).slice(-2)}`,
+    direction: "from_client",
+    title: job.title,
+    client: { ...client },
+    amount: job.amount,
+    nearAmount: job.amount / 5,
+    currency: "USD",
+    due,
+    created: new Date(Date.now() - (i + 1) * 86_400_000).toISOString().slice(0, 10),
+    status: job.status,
+    brief: job.brief,
+    criteria: job.criteria,
+    accent: job.accent,
+    product: job.product,
+    termsHash: `sha256:${(0x9e3779b1 * (i + 7)).toString(16).padStart(8, "0")}${(0x85ebca6b * (i + 3)).toString(16).padStart(8, "0")}`,
+  };
+};
+
 export const ORDERS: Order[] = [
   {
     id: "NSG-2041",
@@ -222,6 +318,7 @@ export const ORDERS: Order[] = [
     accent: "var(--lemon)", product: "bottle",
     termsHash: "sha256:2a71d990e4b15508",
   },
+  ...DEMO_JOBS.map(demoFromJob),
 ];
 
 export const getOrder = (id: string) => ORDERS.find((o) => o.id === id);

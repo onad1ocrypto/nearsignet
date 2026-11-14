@@ -162,9 +162,26 @@ export default function NewOrderPage() {
           <p className="muted" style={{ maxWidth: 480 }}>
             {t("new.sentSub", { name: createdOrder.client.name, email: createdOrder.client.email ?? createdOrder.client.nearAccount ?? "client", amount: money(createdOrder.amount) })} ({createdOrder.nearAmount} NEAR)
           </p>
+          <div
+            className="mono tiny"
+            style={{
+              marginTop: 4,
+              padding: "10px 12px",
+              borderRadius: 10,
+              border: "1px solid rgba(0,236,151,0.3)",
+              background: "rgba(0,236,151,0.06)",
+              color: "var(--fg-muted)",
+              textAlign: "left",
+              maxWidth: 520,
+            }}
+          >
+            NEXT: open the order → press <b style={{ color: "var(--mint)" }}>Sign &amp; Lock</b> to lock{" "}
+            {createdOrder.nearAmount} NEAR with your wallet. If the wallet says the id already exists, press{" "}
+            <b>1 · New On-Chain Run</b> there first.
+          </div>
           <div className="row wrap" style={{ gap: 10, marginTop: 8 }}>
             <button className="btn lg mint" onClick={() => router.push(`/orders/${createdOrder.id}`)}>
-              <Icon name="shield" size={17} /> {t("new.openOrder")} →
+              <Icon name="shield" size={17} /> Open &amp; Sign the escrow →
             </button>
             <button className="btn lg" onClick={() => router.push("/orders?tab=by_me")}>
               {t("new.backOrders")}
