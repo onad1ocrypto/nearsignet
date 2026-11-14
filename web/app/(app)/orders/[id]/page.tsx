@@ -838,8 +838,10 @@ function ReviewPanel({
 
   useEffect(() => {
     let alive = true;
-    void probeEscrow(onchainId).then((p) => { if (alive) setProbe(p); });
-    return () => { alive = false; };
+    const run = () => void probeEscrow(onchainId).then((p) => { if (alive) setProbe(p); });
+    run();
+    const id = setInterval(run, 15_000);
+    return () => { alive = false; clearInterval(id); };
   }, [onchainId, busy]);
 
   // A wallet can sign only when it holds a key for the contract AND we have a session account.
@@ -866,6 +868,10 @@ function ReviewPanel({
           Math.floor((msLeft % 3600000) / 60000)
         ).padStart(2, "0")}:${String(Math.floor((msLeft % 60000) / 1000)).padStart(2, "0")}`;
   const timeoutReady = Boolean(probe?.exists && deadlineNs > 0 && Date.now() * 1e6 >= deadlineNs);
+  const windowLabel =
+    deadlineNs > 0 && probe
+      ? `${Math.max(1, Math.round((deadlineNs / 1e6 - Date.now() + 1000) / 60000))} min left`
+      : "72h review window";
   const deadlineLabel =
     deadlineNs > 0
       ? new Date(deadlineNs / 1e6).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " UTC"
@@ -975,7 +981,7 @@ function ReviewPanel({
             !probe?.exists
               ? "This escrow is not funded on-chain yet — fund it first."
               : !timeoutReady
-              ? `The 72h review window is still open. It ends ${deadlineLabel}.`
+              ? `The review window is still open (${windowLabel}). It ends ${deadlineLabel}.`
               : "Review window expired — the freelancer can claim the escrow."
           }
           onClick={() => settle("timeout_claim")}
