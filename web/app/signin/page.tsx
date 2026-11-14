@@ -6,7 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useMe } from "@/lib/me";
 import { NEAR_CONTRACT_ID, nearExplorerAccount } from "@/lib/near";
-import type { SupportedWalletId } from "@/lib/wallet";
+import { type SupportedWalletId } from "@/lib/wallet";
 import { Icon } from "@/components/Icon";
 import { Orin } from "@/components/Orin";
 import { Kicker, LangSwitch, Logo, ThemeSwitch } from "@/components/ui";
@@ -111,10 +111,10 @@ function SignInInner() {
 
   const meteorHint =
     lang === "id"
-      ? "Tips Meteor Wallet: Pastikan dropdown jaringan di Meteor disetel ke Testnet (default: Mainnet). Akun baru butuh ~1 NEAR Testnet untuk kunci sesi."
+      ? "Testnet yang benar-benar bisa tanda tangan: Meteor, HERE, Sender, Nightly. Intear sering gagal bikin key di testnet, HOT praktis mainnet-only. Setelah connect, cek chip 'SCOPED KEY READY ✓' di halaman order. Akun baru butuh ~1 NEAR Testnet untuk gas."
       : lang === "zh"
       ? "Meteor 钱包提示：请先在 Meteor 钱包右上角将网络切换为 Testnet（默认是 Mainnet）。"
-      : "Meteor tip: Switch Meteor's network dropdown to Testnet (it defaults to Mainnet). New Testnet accounts need ~1 NEAR for login key gas.";
+      : "Wallets that can actually sign on testnet: Meteor, HERE, Sender, Nightly. Intear often fails to create a testnet access key and HOT is effectively mainnet-only. After connecting, look for the 'SCOPED KEY READY ✓' chip on the order page. New testnet accounts need ~1 NEAR for gas.";
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
@@ -174,24 +174,32 @@ function SignInInner() {
               </button>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                <button
-                  type="button"
-                  className="btn"
-                  style={{
-                    justifyContent: "space-between",
-                    borderColor: "rgba(253,224,71,0.34)",
-                    background: "rgba(253,224,71,0.05)",
-                    padding: "10px 12px",
-                  }}
-                  disabled={!!busy}
-                  onClick={() => void handleWallet("intear-wallet")}
-                >
-                  <span className="row" style={{ gap: 7, fontSize: 13 }}>
-                    <Icon name="globe" size={15} />
-                    <span>{busy === "intear-wallet" ? "Opening…" : "Intear Wallet"}</span>
-                  </span>
-                  <span className="mono tiny" style={{ color: "#fde047" }}>Web</span>
-                </button>
+                {([
+                  { id: "here-wallet", label: "HERE Wallet", icon: "globe", note: "Web / Testnet", color: "rgba(253,224,71,0.34)", bg: "rgba(253,224,71,0.05)", accent: "#fde047" },
+                  { id: "sender", label: "Sender", icon: "globe", note: "Ext / Testnet", color: "rgba(129,140,248,0.34)", bg: "rgba(129,140,248,0.06)", accent: "#a5b4fc" },
+                  { id: "nightly", label: "Nightly", icon: "sparkles", note: "Ext / Testnet", color: "rgba(56,189,248,0.34)", bg: "rgba(56,189,248,0.06)", accent: "#7dd3fc" },
+                  { id: "intear-wallet", label: "Intear", icon: "globe", note: "Web (limited)", color: "rgba(253,224,71,0.34)", bg: "rgba(253,224,71,0.05)", accent: "#fde047" },
+                ] as const).map((w) => (
+                  <button
+                    key={w.id}
+                    type="button"
+                    className="btn"
+                    style={{
+                      justifyContent: "space-between",
+                      borderColor: w.color,
+                      background: w.bg,
+                      padding: "10px 12px",
+                    }}
+                    disabled={!!busy}
+                    onClick={() => void handleWallet(w.id as SupportedWalletId)}
+                  >
+                    <span className="row" style={{ gap: 7, fontSize: 13 }}>
+                      <Icon name={w.icon} size={15} />
+                      <span>{busy === w.id ? "Opening…" : w.label}</span>
+                    </span>
+                    <span className="mono tiny" style={{ color: w.accent }}>{w.note}</span>
+                  </button>
+                ))}
 
                 <button
                   type="button"
@@ -201,6 +209,7 @@ function SignInInner() {
                     borderColor: "rgba(251,146,60,0.34)",
                     background: "rgba(251,146,60,0.06)",
                     padding: "10px 12px",
+                    gridColumn: "1 / -1",
                   }}
                   disabled={!!busy}
                   onClick={() => void handleWallet("hot-wallet")}
@@ -209,7 +218,7 @@ function SignInInner() {
                     <Icon name="sparkles" size={15} />
                     <span>{busy === "hot-wallet" ? "Opening…" : "HOT Wallet"}</span>
                   </span>
-                  <span className="mono tiny" style={{ color: "#fb923c" }}>Ext / Web</span>
+                  <span className="mono tiny" style={{ color: "#fb923c" }}>Mainnet-only · not for testnet txns</span>
                 </button>
               </div>
             </div>

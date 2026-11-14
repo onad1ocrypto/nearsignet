@@ -8,7 +8,13 @@ if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: typeof Buffe
   (globalThis as { Buffer?: typeof Buffer }).Buffer = Buffer;
 }
 
-export type SupportedWalletId = "meteor-wallet" | "intear-wallet" | "hot-wallet";
+export type SupportedWalletId =
+  | "meteor-wallet"
+  | "here-wallet"
+  | "sender"
+  | "nightly"
+  | "intear-wallet"
+  | "hot-wallet";
 
 /**
  * Methods the dApp ever asks the browser wallet to sign. Requesting a SCOPED
@@ -20,6 +26,14 @@ export const WALLET_METHOD_NAMES = ["create_and_fund_escrow", "approve_and_relea
 
 let selectorPromise: Promise<WalletSelector> | null = null;
 let lastWalletId: SupportedWalletId | null = null;
+export const KNOWN_WALLET_IDS: SupportedWalletId[] = [
+  "meteor-wallet",
+  "here-wallet",
+  "sender",
+  "nightly",
+  "intear-wallet",
+  "hot-wallet",
+];
 const LAST_WALLET_KEY = "nearsignet.walletId";
 
 function rememberWallet(id: string | null | undefined) {
@@ -35,7 +49,7 @@ function rememberedWallet(): SupportedWalletId | null {
   try {
     if (typeof localStorage !== "undefined") {
       const v = localStorage.getItem(LAST_WALLET_KEY);
-      if (v === "meteor-wallet" || v === "intear-wallet" || v === "hot-wallet") return v;
+      if (v && KNOWN_WALLET_IDS.includes(v as SupportedWalletId)) return v as SupportedWalletId;
     }
   } catch {}
   return null;
@@ -52,18 +66,32 @@ export async function getNearSelector(): Promise<WalletSelector | null> {
       const [
         { setupWalletSelector },
         { setupMeteorWallet },
+        { setupHereWallet },
+        { setupSender },
+        { setupNightly },
         { setupIntearWallet },
         { setupHotWallet },
       ] = await Promise.all([
         import("@near-wallet-selector/core"),
         import("@near-wallet-selector/meteor-wallet"),
+        import("@near-wallet-selector/here-wallet"),
+        import("@near-wallet-selector/sender"),
+        import("@near-wallet-selector/nightly"),
         import("@near-wallet-selector/intear-wallet"),
         import("@near-wallet-selector/hot-wallet"),
       ]);
+      /**
+       * Testnet-capable wallets first (extension + web): Meteor, HERE, Sender, Nightly
+       * all sign on testnet. Intear and HOT are kept as secondary options — Intear's
+       * testnet support is unreliable and HOT is effectively mainnet-only.
+       */
       return setupWalletSelector({
         network: NEAR_NETWORK_ID === "mainnet" ? "mainnet" : "testnet",
         modules: [
           setupMeteorWallet(),
+          setupHereWallet(),
+          setupSender(),
+          setupNightly(),
           setupIntearWallet(),
           setupHotWallet(),
         ],

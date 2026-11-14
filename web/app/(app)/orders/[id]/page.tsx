@@ -377,6 +377,7 @@ function OrderDetailInner() {
               order={order}
               onchainId={onchainId}
               log={log}
+              flash={flash}
               onFunded={(hash) => {
                 if (hash) setTxHash(hash);
                 setStatus("in_escrow");
@@ -652,11 +653,13 @@ function NearDepositPanel({
   onchainId,
   log,
   onFunded,
+  flash,
 }: {
   order: Order;
   onchainId: string;
   log: (l: Log) => void;
   onFunded: (txHash?: string) => void;
+  flash: (msg: string) => void;
 }) {
   const { t, money } = useI18n();
   const { me, walletConnected, session } = useMe();
@@ -681,8 +684,14 @@ function NearDepositPanel({
   const lockEscrow = async () => {
     setBusy(true);
     try {
-      // 1. REAL BROWSER WALLET SIGNING (Meteor / Intear / HOT Wallet)
+      // 1. REAL BROWSER WALLET SIGNING (Meteor / HERE / Sender / Nightly)
       if (walletConnected) {
+        const chain = await probeEscrow(onchainId);
+        if (chain.exists) {
+          throw new Error(
+            `ONCHAIN_ESCROW_EXISTS — "${onchainId}" is already ${chain.status} on ${NEAR_CONTRACT_ID}. Funding the same order id would revert; click "New On-Chain Run" to get a fresh id first.`
+          );
+        }
         const signerAcct = session.near?.accountId || "";
         const targetFreelancer =
           me.nearAccount && me.nearAccount !== signerAcct ? me.nearAccount : NEAR_FREELANCER_DEFAULT;
@@ -746,7 +755,9 @@ function NearDepositPanel({
       });
       onFunded(d.txHash);
     } catch (e) {
-      log({ who: "wallet", msg: "create_and_fund_escrow failed", res: walletFailure(e), kind: "err" });
+      const reason = walletFailure(e);
+      log({ who: "wallet", msg: "create_and_fund_escrow failed", res: reason, kind: "err" });
+      flash(reason);
     } finally {
       setBusy(false);
     }

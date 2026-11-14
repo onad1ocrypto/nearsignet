@@ -2,7 +2,7 @@
   "name": "nearsignet-web",
   "version": "1.0.0",
   "license": "MIT",
-  "description": "NearSignet Next.js 16 web application \u2014 AI-verified freelance escrow on NEAR Protocol",
+  "description": "NearSignet Next.js 16 web application — AI-verified freelance escrow on NEAR Protocol",
   "repository": {
     "type": "git",
     "url": "https://github.com/onad1ocrypto/nearsignet.git",
@@ -22,9 +22,12 @@
   },
   "dependencies": {
     "@near-wallet-selector/core": "^10.1.4",
+    "@near-wallet-selector/here-wallet": "^10.1.4",
     "@near-wallet-selector/hot-wallet": "10.1.4",
     "@near-wallet-selector/intear-wallet": "10.1.4",
     "@near-wallet-selector/meteor-wallet": "^10.1.4",
+    "@near-wallet-selector/nightly": "^10.1.4",
+    "@near-wallet-selector/sender": "^10.1.4",
     "buffer": "6.0.3",
     "html-to-image": "^1.11.13",
     "near-api-js": "^5.0.1",
