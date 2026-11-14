@@ -8,7 +8,7 @@
 
 ![NearSignet — AI-Verified Freelance Escrow on NEAR Protocol](docs/hero-banner.jpg)
 
-> **Live Hosted App**: **[https://nearsignet.vercel.app](https://nearsignet.vercel.app)** — Connect your real **NEAR Testnet Wallet (`MyNearWallet` / `Meteor Wallet`)** OR use the **1-Click Live Testnet Relayer Sandbox** (every step broadcasts real transactions on `nearsignet-protocol.testnet` verifiable on NearBlocks).
+> **Live Hosted App**: **[https://nearsignet.vercel.app](https://nearsignet.vercel.app)** — Connect your real **NEAR Testnet Wallet (`Meteor Wallet`, `Intear Wallet`, or `HOT Wallet`)** OR use the **1-Click Live Testnet Relayer Sandbox** (every step broadcasts real transactions on `nearsignet-protocol.testnet` verifiable on NearBlocks).
 
 **NearSignet** is a non-custodial cross-border freelance escrow protocol on **NEAR** where specialized AI agents convert plain-language briefs into deterministic file checks, inspect real deliverables in the browser (pixel dimensions, background RGB purity, video duration/aspect ratio, WebAudio dBFS loudness, document word count), and record cryptographic attestations on-chain using a **NEAR Scoped Function-Call Access Key** (`0 FullAccess` keys on-chain) that physically cannot move escrowed funds.
 
@@ -25,7 +25,7 @@ Cross-border freelancers, designers, and independent studios lose **6–20%** to
 | Capability | NEAR Primitive Used | Why It Matters |
 | :--- | :--- | :--- |
 | **Protocol-Enforced AI Firewall (`0 FullAccess` Keys)** | **Scoped `FunctionCall` Access Key** on `verifier.nearsignet-protocol.testnet` (`receiver_id: "nearsignet-protocol.testnet"`, `method_names: ["submit_verification", "propose_mediation"]`, `0.25 NEAR` gas cap, `FullAccess` key deleted on-chain) | Even if an AI agent is prompt-injected or its runtime key leaks, the NEAR runtime rejects `approve_and_release`, `refund_escrow`, and token transfers at the protocol layer. |
-| **Non-Custodial Escrow + Timeout Auto-Release** | **`NearSignetEscrow` WASM smart contract** (`nearsignet-protocol.testnet`) + `@near-wallet-selector` (`MyNearWallet` & `Meteor Wallet`) | Funds lock directly in yoctoNEAR. Once `submit_verification` records `all_passed: true` + `SHA-256` evidence hash, an on-chain `near.blockTimestamp()` timer allows `claim_after_timeout` if the client goes silent. |
+| **Non-Custodial Escrow + Timeout Auto-Release** | **`NearSignetEscrow` WASM smart contract** (`nearsignet-protocol.testnet`) + `@near-wallet-selector` (`Meteor`, `Intear`, `HOT`) | Funds lock directly in yoctoNEAR. Once `submit_verification` records `all_passed: true` + `SHA-256` evidence hash, an on-chain `near.blockTimestamp()` timer allows `claim_after_timeout` if the client goes silent. |
 | **Cross-Chain Client Funding Quotes** | **NEAR Intents 1-Click API** (`https://1click.chaindefuser.com/v0/quote` via `/api/near/intents`) | Clients holding `USDC`, `USDT`, or `ETH` preview live conversion quotes into `NEAR` escrow before locking funds (with deterministic offline quote fallback). |
 | **Multi-Agent Private AI Inference** | **NEAR AI Cloud TEE** (`https://cloud-api.near.ai/v1/chat/completions`, `zai-org/GLM-5.1-FP8` / `DeepSeek-V3.1`) + deterministic rule engine | Powers 3 agents (**Contract Agent**, **Verification Agent**, **Mediator Agent**) across **English**, **中文**, and **Bahasa Indonesia**. |
 
@@ -71,7 +71,7 @@ Every smart contract, zero-`FullAccess` scoped verifier key, and full escrow set
 ### Step A — Try Live at [https://nearsignet.vercel.app](https://nearsignet.vercel.app) (Real Wallet OR Live Relayer)
 
 1. **Sign In with Real NEAR Wallet OR Live Testnet Relayer**
-   - **Do**: Open **`https://nearsignet.vercel.app`**, watch or skip the opening trailer, and click **`Open App`**. On `/signin`, click **`Connect MyNearWallet (Testnet)`** / **`Connect Meteor Wallet`** (to sign transactions with your own `.testnet` wallet) **OR** click **`1-Click Judge Sandbox (Live Testnet Relayer)`**.
+   - **Do**: Open **`https://nearsignet.vercel.app`**, watch or skip the opening trailer, and click **`Open App`**. On `/signin`, click **`Connect Meteor Wallet (Testnet)`** / **`Intear Wallet`** / **`HOT Wallet`** *(note: in Meteor Wallet, switch the network dropdown to **Testnet**)* **OR** click **`1-Click Judge Sandbox (Live Testnet Relayer)`**.
    - **See**: You enter `/dashboard` connected to live telemetry from `nearsignet-protocol.testnet`.
 2. **Catch a Defective Deliverable & Record On-Chain `REVISION_NEEDED` (`/orders/NSG-2041`)**
    - **Do**: Open **`/orders/NSG-2041`** and click **`Use sample files (with 1 grey bg)`**, then click **`Run AI Verification`**.
@@ -107,7 +107,7 @@ npm run start
 ```mermaid
 flowchart LR
   subgraph Web["Browser Client (Next.js 16 + @near-wallet-selector)"]
-    Wallet["MyNearWallet / Meteor Wallet\n(or Live Testnet Sandbox Relayer)"]
+    Wallet["Meteor / Intear / HOT Wallet\n(or Live Testnet Sandbox Relayer)"]
     Inspector["In-Browser File Inspector\n(Canvas Pixels · Video Metadata · WebAudio dBFS)"]
     Intents["NEAR Intents 1-Click Quote\n(USDC / USDT / ETH → NEAR)"]
     Cert["Cryptographic SEALED Stamp\n& Exportable PNG Certificate"]
@@ -157,7 +157,7 @@ nearsignet/
 ## 5. NEAR Hackathon Track Alignment (`nearhackathon.com`)
 
 - **`security` — 06 / AI Security & Defense**: Proves on-chain how to give AI agents autonomous verification & mediation authority **with `0 FullAccess` keys**, using NEAR's native `FunctionCall` key method scoping (`["submit_verification", "propose_mediation"]`) and gas allowance caps (`0.25 NEAR`).
-- **`realworld` — 08 / Real-World Money**: Non-custodial cross-border freelance invoicing & escrow with real NEAR Wallet signing (`MyNearWallet` / `Meteor`), shareable `/to/[handle]` intake links, NEAR Intents `USDC`/`USDT`/`ETH` → `NEAR` quotes, and exportable `SEALED` settlement certificates.
+- **`realworld` — 08 / Real-World Money**: Non-custodial cross-border freelance invoicing & escrow with real NEAR Wallet signing (`Meteor` / `Intear` / `HOT`), shareable `/to/[handle]` intake links, NEAR Intents `USDC`/`USDT`/`ETH` → `NEAR` quotes, and exportable `SEALED` settlement certificates.
 - **`agents` — 07 / Agent Economy & `business` — 04 / Autonomous Business**: Coordinates three specialized agents (Contract Drafter, Deliverable Verifier, Dispute Mediator) wired to `NEAR AI Cloud` (`cloud-api.near.ai/v1`).
 
 ---
@@ -170,7 +170,7 @@ nearsignet/
 | :--- | :--- | :--- |
 | `near-sdk-js` (`^2.0.0`) | TypeScript-to-WASM smart contract SDK for `NearSignetEscrow` | `MIT` / `Apache-2.0` |
 | `near-api-js` (`^5.0.1`) | NEAR JSON-RPC queries & transaction signing | `MIT` / `Apache-2.0` |
-| `@near-wallet-selector/*` (`10.1.4`) | Browser NEAR Wallet connection (`MyNearWallet` & `Meteor Wallet`) | `MIT` / `Apache-2.0` |
+| `@near-wallet-selector/*` (`10.1.4`) | Browser NEAR Wallet connection (`Meteor`, `Intear`, & `HOT Wallet`) | `MIT` / `Apache-2.0` |
 | `next` (`^16.4.6`) & `react` (`^19.3.1`) | Full-stack web application & API routes | `MIT` |
 | `html-to-image` (`^1.11.13`) | Client-side PNG export of `SEALED` settlement certificates | `MIT` |
 | NEAR Intents 1-Click API (`1click.chaindefuser.com`) | Cross-chain `USDC` / `USDT` / `ETH` → `NEAR` conversion quotes | Public API (`Q-006`) |

@@ -1,9 +1,14 @@
 "use client";
 
+import { Buffer } from "buffer";
 import type { WalletSelector } from "@near-wallet-selector/core";
 import { NEAR_CONTRACT_ID, NEAR_EXPLORER_URL, NEAR_NETWORK_ID } from "./near";
 
-export type SupportedWalletId = "my-near-wallet" | "meteor-wallet";
+if (typeof globalThis !== "undefined" && !(globalThis as { Buffer?: typeof Buffer }).Buffer) {
+  (globalThis as { Buffer?: typeof Buffer }).Buffer = Buffer;
+}
+
+export type SupportedWalletId = "meteor-wallet" | "intear-wallet" | "hot-wallet";
 
 let selectorPromise: Promise<WalletSelector> | null = null;
 
@@ -11,18 +16,23 @@ export async function getNearSelector(): Promise<WalletSelector | null> {
   if (typeof window === "undefined") return null;
   if (!selectorPromise) {
     selectorPromise = (async () => {
-      const [{ setupWalletSelector }, { setupMyNearWallet }, { setupMeteorWallet }] = await Promise.all([
+      const [
+        { setupWalletSelector },
+        { setupMeteorWallet },
+        { setupIntearWallet },
+        { setupHotWallet },
+      ] = await Promise.all([
         import("@near-wallet-selector/core"),
-        import("@near-wallet-selector/my-near-wallet"),
         import("@near-wallet-selector/meteor-wallet"),
+        import("@near-wallet-selector/intear-wallet"),
+        import("@near-wallet-selector/hot-wallet"),
       ]);
       return setupWalletSelector({
         network: NEAR_NETWORK_ID === "mainnet" ? "mainnet" : "testnet",
         modules: [
-          setupMyNearWallet({
-            walletUrl: NEAR_NETWORK_ID === "mainnet" ? "https://app.mynearwallet.com" : "https://testnet.mynearwallet.com",
-          }),
           setupMeteorWallet(),
+          setupIntearWallet(),
+          setupHotWallet(),
         ],
       });
     })();
@@ -39,7 +49,7 @@ export async function getActiveWalletAccount(): Promise<{ accountId: string; wal
     if (!active?.accountId) return null;
     return {
       accountId: active.accountId,
-      walletId: state.selectedWalletId || "my-near-wallet",
+      walletId: state.selectedWalletId || "meteor-wallet",
     };
   } catch {
     return null;
@@ -47,7 +57,7 @@ export async function getActiveWalletAccount(): Promise<{ accountId: string; wal
 }
 
 export async function connectNearBrowserWallet(
-  walletId: SupportedWalletId,
+  walletId: SupportedWalletId = "meteor-wallet",
   successUrl?: string
 ): Promise<{ accountId?: string; redirected?: boolean }> {
   const selector = await getNearSelector();
@@ -120,8 +130,9 @@ export async function signNearWalletCall({
   });
 
   const txHash =
-    (outcome as { transaction?: { hash?: string }; transaction_outcome?: { id?: string } } | undefined)?.transaction?.hash ||
+    (outcome as { transaction?: { hash?: string } } | undefined)?.transaction?.hash ||
     (outcome as { transaction_outcome?: { id?: string } } | undefined)?.transaction_outcome?.id ||
+    (outcome as { hash?: string } | undefined)?.hash ||
     "";
 
   return {

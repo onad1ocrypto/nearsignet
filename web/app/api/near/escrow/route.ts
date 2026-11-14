@@ -36,7 +36,7 @@ interface ChainEscrowRecord {
  * - Verification (`submit_verification`) & Mediation Proposals (`propose_mediation`)
  *   are signed EXCLUSIVELY by the Scoped Function-Call Access Key on `verifier.nearsignet-protocol.testnet`
  *   (which has ZERO `FullAccess` keys on the blockchain).
- * - When a browser wallet (`MyNearWallet` / `Meteor`) is connected, `fund`, `release`, and
+ * - When a browser wallet (`Meteor` / `Intear` / `HOT`) is connected, `fund`, `release`, and
  *   `execute_mediation` are signed client-side in the user's wallet while AI attestations
  *   still go through this Scoped-Key endpoint!
  */

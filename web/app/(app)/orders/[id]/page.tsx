@@ -120,7 +120,7 @@ function OrderDetailInner() {
   const log = (l: Log) => setLogs((x) => [...x, l]);
   const flash = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 2800); };
 
-  // Handle redirect callbacks from MyNearWallet (`?transactionHashes=...&nsgAction=...`)
+  // Handle redirect callbacks from NEAR browser wallets (`?transactionHashes=...&nsgAction=...`)
   useEffect(() => {
     const callbackTx = sp.get("transactionHashes");
     const cbAction = sp.get("nsgAction");
@@ -231,9 +231,9 @@ function OrderDetailInner() {
             <button
               type="button"
               className="btn sm mint"
-              onClick={() => void connectWallet("my-near-wallet", typeof window !== "undefined" ? window.location.href : undefined)}
+              onClick={() => void connectWallet("meteor-wallet", typeof window !== "undefined" ? window.location.href : undefined)}
             >
-              <Icon name="wallet" size={13} /> Connect MyNearWallet
+              <Icon name="wallet" size={13} /> Connect Meteor Wallet
             </button>
           )}
           <button type="button" className="btn sm" onClick={startFreshRun} title="Generate a fresh on-chain escrow ID to test the full lifecycle again">
@@ -541,7 +541,7 @@ function NearDepositPanel({
   const lockEscrow = async () => {
     setBusy(true);
     try {
-      // 1. REAL BROWSER WALLET SIGNING (MyNearWallet / Meteor)
+      // 1. REAL BROWSER WALLET SIGNING (Meteor / Intear / HOT Wallet)
       if (walletConnected) {
         const signerAcct = session.near?.accountId || "";
         const targetFreelancer =

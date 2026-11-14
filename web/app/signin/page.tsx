@@ -6,23 +6,24 @@ import { Suspense, useEffect, useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useMe } from "@/lib/me";
 import { NEAR_CONTRACT_ID, nearExplorerAccount } from "@/lib/near";
+import type { SupportedWalletId } from "@/lib/wallet";
 import { Icon } from "@/components/Icon";
 import { Orin } from "@/components/Orin";
 import { Kicker, LangSwitch, Logo, ThemeSwitch } from "@/components/ui";
 
 function SignInInner() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { connectWallet, connectNear, startGuest, session, walletConnected, walletId, sessionReady } = useMe();
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next") || "/dashboard";
 
   const [accountId, setAccountId] = useState("raka.nearsignet-protocol.testnet");
-  const [busy, setBusy] = useState<"" | "my-near-wallet" | "meteor-wallet" | "rpc">("");
+  const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc">("");
   const [err, setErr] = useState("");
   const [showRpc, setShowRpc] = useState(false);
 
-  // If user returned from MyNearWallet redirect and is now wallet-authenticated, forward cleanly
+  // If user returned from a wallet callback redirect and is now wallet-authenticated, forward cleanly
   useEffect(() => {
     if (sessionReady && walletConnected && session.mode === "near") {
       const hasWalletCallback = typeof window !== "undefined" && window.location.search.includes("account_id=");
@@ -32,7 +33,7 @@ function SignInInner() {
     }
   }, [sessionReady, walletConnected, session.mode, router, next]);
 
-  const handleWallet = async (wId: "my-near-wallet" | "meteor-wallet") => {
+  const handleWallet = async (wId: SupportedWalletId) => {
     setBusy(wId);
     setErr("");
     const callbackTarget =
@@ -62,6 +63,13 @@ function SignInInner() {
     router.push(next);
   };
 
+  const meteorHint =
+    lang === "id"
+      ? "Tips Meteor Wallet: Pastikan dropdown jaringan di Meteor disetel ke Testnet (default: Mainnet). Akun baru butuh ~1 NEAR Testnet untuk kunci sesi."
+      : lang === "zh"
+      ? "Meteor 钱包提示：请先在 Meteor 钱包右上角将网络切换为 Testnet（默认是 Mainnet）。"
+      : "Meteor tip: Switch Meteor's network dropdown to Testnet (it defaults to Mainnet). New Testnet accounts need ~1 NEAR for login key gas.";
+
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header style={{ maxWidth: 1180, width: "100%", margin: "0 auto", padding: "20px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -82,7 +90,7 @@ function SignInInner() {
           <h1 style={{ fontSize: 30 }}>{t("si.title")}</h1>
           <p className="muted" style={{ marginTop: 8, lineHeight: 1.6 }}>{t("si.sub")}</p>
 
-          {/* 1. REAL NEAR WALLET SELECTOR */}
+          {/* 1. REAL NEAR WALLET SELECTOR (METEOR PRIMARY + INTEAR + HOT) */}
           <div
             style={{
               marginTop: 18,
@@ -106,38 +114,83 @@ function SignInInner() {
                 className="btn lg near-pay"
                 style={{ width: "100%", justifyContent: "space-between" }}
                 disabled={!!busy}
-                onClick={() => void handleWallet("my-near-wallet")}
-              >
-                <span className="row" style={{ gap: 10 }}>
-                  <Icon name="wallet" size={18} />
-                  <span>{busy === "my-near-wallet" ? "Opening MyNearWallet…" : "Connect MyNearWallet (Testnet)"}</span>
-                </span>
-                <span className="mono tiny" style={{ opacity: 0.85 }}>Web Wallet ↗</span>
-              </button>
-
-              <button
-                type="button"
-                className="btn lg"
-                style={{
-                  width: "100%",
-                  justifyContent: "space-between",
-                  borderColor: "rgba(253,224,71,0.38)",
-                  background: "rgba(253,224,71,0.06)",
-                }}
-                disabled={!!busy}
                 onClick={() => void handleWallet("meteor-wallet")}
               >
                 <span className="row" style={{ gap: 10 }}>
-                  <Icon name="sparkles" size={18} />
-                  <span>{busy === "meteor-wallet" ? "Connecting Meteor Wallet…" : "Connect Meteor Wallet"}</span>
+                  <Icon name="wallet" size={18} />
+                  <span>
+                    {busy === "meteor-wallet"
+                      ? "Connecting Meteor Wallet…"
+                      : "Connect Meteor Wallet (Testnet)"}
+                  </span>
                 </span>
-                <span className="mono tiny" style={{ color: "#fde047" }}>Extension / Web</span>
+                <span className="mono tiny" style={{ opacity: 0.9 }}>Extension / Web ↗</span>
               </button>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                <button
+                  type="button"
+                  className="btn"
+                  style={{
+                    justifyContent: "space-between",
+                    borderColor: "rgba(253,224,71,0.34)",
+                    background: "rgba(253,224,71,0.05)",
+                    padding: "10px 12px",
+                  }}
+                  disabled={!!busy}
+                  onClick={() => void handleWallet("intear-wallet")}
+                >
+                  <span className="row" style={{ gap: 7, fontSize: 13 }}>
+                    <Icon name="globe" size={15} />
+                    <span>{busy === "intear-wallet" ? "Opening…" : "Intear Wallet"}</span>
+                  </span>
+                  <span className="mono tiny" style={{ color: "#fde047" }}>Web</span>
+                </button>
+
+                <button
+                  type="button"
+                  className="btn"
+                  style={{
+                    justifyContent: "space-between",
+                    borderColor: "rgba(251,146,60,0.34)",
+                    background: "rgba(251,146,60,0.06)",
+                    padding: "10px 12px",
+                  }}
+                  disabled={!!busy}
+                  onClick={() => void handleWallet("hot-wallet")}
+                >
+                  <span className="row" style={{ gap: 7, fontSize: 13 }}>
+                    <Icon name="sparkles" size={15} />
+                    <span>{busy === "hot-wallet" ? "Opening…" : "HOT Wallet"}</span>
+                  </span>
+                  <span className="mono tiny" style={{ color: "#fb923c" }}>Ext / Web</span>
+                </button>
+              </div>
             </div>
 
-            <p className="tiny muted" style={{ marginTop: 10, lineHeight: 1.5 }}>
-              Sign <code className="mono">create_and_fund_escrow</code> & <code className="mono">approve_and_release</code> directly from your NEAR Testnet wallet while Orin attests verification via its Scoped Function-Call Key.
-            </p>
+            <div
+              className="tiny"
+              style={{
+                marginTop: 10,
+                padding: "8px 10px",
+                borderRadius: 9,
+                background: "rgba(253,224,71,0.06)",
+                border: "1px solid rgba(253,224,71,0.22)",
+                color: "var(--fg-muted)",
+                lineHeight: 1.48,
+              }}
+            >
+              {meteorHint}{" "}
+              <a
+                href="https://docs.near.org/faucet"
+                target="_blank"
+                rel="noreferrer"
+                className="mono"
+                style={{ color: "#fde047", textDecoration: "underline" }}
+              >
+                Testnet Faucet ↗
+              </a>
+            </div>
           </div>
 
           {err && (
@@ -162,7 +215,7 @@ function SignInInner() {
               router.push(next);
             }}
           >
-            <Icon name="bolt" size={17} /> {t("si.guest")} (Live Testnet Relayer)
+            <Icon name="bolt" size={17} /> {t("si.guest")}
           </button>
           <p className="tiny muted" style={{ marginTop: 8, textAlign: "center", lineHeight: 1.5 }}>
             No wallet installed? Broadcasts <b>real signed NEAR Testnet transactions</b> via our funded sandbox relayer (<code className="mono">liam.{NEAR_CONTRACT_ID}</code>) with live NearBlocks Tx links.

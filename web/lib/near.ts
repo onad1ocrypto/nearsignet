@@ -22,8 +22,7 @@ export const NEAR_CLIENT_DEFAULT =
   process.env.NEXT_PUBLIC_NEAR_CLIENT_ID || `liam.${NEAR_CONTRACT_ID}`;
 export const NEAR_EXPLORER_URL =
   NEAR_NETWORK_ID === "mainnet" ? "https://nearblocks.io" : "https://testnet.nearblocks.io";
-export const MY_NEAR_WALLET_URL =
-  NEAR_NETWORK_ID === "mainnet" ? "https://app.mynearwallet.com" : "https://testnet.mynearwallet.com";
+export const METEOR_WALLET_URL = "https://wallet.meteorwallet.app";
 
 /** Real verified NEAR Testnet deployment hashes recorded on `nearsignet-protocol.testnet`. */
 export const LIVE_TESTNET_ARTIFACTS = {
