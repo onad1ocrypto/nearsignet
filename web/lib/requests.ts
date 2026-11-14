@@ -3,6 +3,7 @@
    ========================================================= */
 
 import type { Criterion, Order, Person, ProductKind } from "./data";
+import { demoDepositNear } from "./near";
 import { lsGet, lsSet } from "./safeStorage";
 
 export interface IncomingRequest {
@@ -193,7 +194,9 @@ export const deriveTitle = (brief: string, title?: string) => {
 export function requestAsOrder(r: IncomingRequest): Order {
   const due = new Date(new Date(r.createdAt).getTime() + 14 * 86_400_000);
   const amount = Number(r.budget) || 0;
-  const nearAmount = Math.max(0.01, Math.round((amount / 5) * 100) / 100);
+  // Same faucet-sized deposit the client will actually sign (0.05–0.10 NEAR),
+  // never amount/5 — that printed 48 NEAR next to a 0.1 NEAR deposit.
+  const nearAmount = demoDepositNear(amount);
   const client: Person = {
     name: r.name,
     nearAccount: r.nearAccount || "client.testnet",

@@ -164,7 +164,7 @@ export default function LandingPage() {
                 <div className="col" style={{ gap: 3, minWidth: 0 }}>
                   <span className="kbd" style={{ color: "#fbbf24" }}>{t("lp2.notary").toUpperCase()}</span>
                   <b style={{ fontSize: 15.5, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>3D Sneaker Render Pack · 20 Angles</b>
-                  <span className="mono tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>raka.nearsignet-protocol.testnet ← liam-client.testnet</span>
+                  <span className="mono tiny muted" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>sasam.testnet ← liam-client.testnet</span>
                 </div>
               </div>
               <Orin key={orinPose} pose={orinPose} size={104} className="pop-in" />
@@ -236,7 +236,7 @@ export default function LandingPage() {
               <div className="row between pop-in" style={{ padding: 14, borderRadius: 12, border: "1px solid rgba(0,236,151,0.45)", background: "rgba(7,11,18,0.85)" }}>
                 <div className="col" style={{ gap: 4 }}>
                   <span className="kbd" style={{ color: "var(--mint)" }}>{t("lp2.sealedBadge").toUpperCase()}</span>
-                  <div className="display" style={{ fontSize: 22 }}>30.0 NEAR → raka-studio.testnet</div>
+                  <div className="display" style={{ fontSize: 22 }}>0.10 NEAR → sasam.testnet</div>
                   <span className="mono tiny" style={{ color: "#fbbf24" }}>seal_id: SEAL-NSG-2033-034003</span>
                 </div>
                 <SignetSeal size={92} sealCode="SEAL-NSG-2033" slam />

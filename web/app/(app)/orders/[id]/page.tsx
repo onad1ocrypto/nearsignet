@@ -144,26 +144,37 @@ function OrderDetailInner() {
   const sp = useSearchParams();
   const known = getOrder(id);
   const isCustom = !known && /^REQ-/i.test(String(id));
+  /**
+   * A brief that is not in this browser yet must NOT silently render some other
+   * order — that made a client stare at a seed job (and at accounts that are not
+   * theirs). Until it resolves we show a placeholder, and if it cannot be found
+   * the page says so instead of pretending.
+   */
+  const [missing, setMissing] = useState(false);
+  const [resolving, setResolving] = useState(!known);
   const [order, setOrder] = useState<Order>(known ?? ORDERS[0]);
   const [onchainId, setOnchainId] = useState<string>(() => getOrCreateOnchainId(String(id || "NSG-2041")));
 
   useEffect(() => {
     const oid = getOrCreateOnchainId(String(id || "NSG-2041"));
     setOnchainId(oid);
-    if (known) { setOrder(known); return; }
+    if (known) { setOrder(known); setResolving(false); return; }
     if (!isCustom) return;
     let alive = true;
     (async () => {
       const mine = myOrder(id);
-      if (mine) { if (alive) setOrder(mine); return; }
+      if (mine) { if (alive) { setOrder(mine); setResolving(false); } return; }
       const r = await loadIncomingById(String(id).toUpperCase());
-      if (alive && r) setOrder(requestAsOrder(r));
+      if (!alive) return;
+      setResolving(false);
+      if (r) setOrder(requestAsOrder(r));
+      else setMissing(true);
     })();
     return () => { alive = false; };
   }, [id, known, isCustom]);
 
   const { t, money, nearOf, date } = useI18n();
-  const { walletConnected, walletId, session, connectWallet } = useMe();
+  const { me, walletConnected, walletId, session, connectWallet } = useMe();
   const [status, setStatus] = useState<Status>(order.status);
   useEffect(() => { setStatus(order.status); }, [order]);
 
@@ -259,6 +270,47 @@ function OrderDetailInner() {
     flash(`Fresh on-chain ID ready: ${fresh} — now click Sign & Lock`);
   };
 
+  if (resolving && !known) {
+    return (
+      <div className="col" style={{ gap: 16, maxWidth: 720, margin: "0 auto", paddingTop: 30 }}>
+        <div className="card pad row" style={{ gap: 12, alignItems: "center" }}>
+          <Orin pose="scan" size={64} />
+          <div>
+            <b style={{ fontSize: 16 }}>{t("od.loading")}</b>
+            <div className="tiny muted mono" style={{ marginTop: 2 }}>{String(id)}</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (missing && isCustom) {
+    return (
+      <div className="col" style={{ gap: 18, maxWidth: 720, margin: "0 auto" }}>
+        <Link href="/orders" className="btn sm ghost" style={{ marginLeft: -10 }}>
+          <Icon name="left" size={14} /> {t("nav.orders")}
+        </Link>
+        <div className="card pad col" style={{ gap: 12, borderColor: "rgba(245,158,11,0.4)", background: "rgba(245,158,11,0.07)" }}>
+          <div className="row" style={{ gap: 12 }}>
+            <Orin pose="idle" size={72} />
+            <div>
+              <h2 style={{ fontSize: 20 }}>{t("od.missingTitle", { id: String(id) })}</h2>
+              <p className="muted" style={{ fontSize: 13.5, marginTop: 4 }}>{t("od.missingBody")}</p>
+            </div>
+          </div>
+          <div className="row wrap" style={{ gap: 8 }}>
+            <Link href={`/to/${me.handle}`} className="btn sm mint">
+              <Icon name="send" size={13} /> {t("od.missingResend")}
+            </Link>
+            <Link href="/orders/new" className="btn sm ghost">
+              <Icon name="plus" size={13} /> {t("wp.newOrder")}
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const stageIdx = TIMELINE.findIndex((g) => g.includes(status));
   const tl = [t("tl.agree"), t("tl.fund"), t("tl.work"), t("tl.verify"), t("tl.sealed")];
   const nearDisplay = order.nearAmount ? `${order.nearAmount} NEAR` : nearOf(order.amount);
@@ -277,6 +329,16 @@ function OrderDetailInner() {
    * The account must have proven ownership (NEP-413 signature) to count at all, so
    * "I am sasam.testnet" in a text field buys you nothing.
    */
+  /**
+   * `proven` = this browser proved the account with a wallet signature.
+   *
+   *   proven  -> roles come from the contract and are enforced (client releases,
+   *              freelancer delivers, everybody else is read-only)
+   *   !proven -> DEMO mode: you may walk both sides, exactly like the judge sandbox.
+   *              Nothing can be stolen here because the only money movement —
+   *              approve_and_release — needs the client's own wallet signature and
+   *              the contract checks predecessor == rec.client.
+   */
   const proven = session.near?.signatureVerified === true;
   /**
    * The contract is the source of truth; the local order only fills in while the
@@ -290,8 +352,10 @@ function OrderDetailInner() {
   );
   const sandbox = !session.near;
   const role: "client" | "freelancer" | "nobody" = sandbox ? "freelancer" : side;
-  const canDeliver = role === "freelancer";
-  const canRelease = role === "client";
+  const demoMode = !proven;
+  const canDeliver = demoMode || role === "freelancer";
+  const canRelease = demoMode || role === "client";
+  const canFund = demoMode || role === "client";
   const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
 
   /**
@@ -518,7 +582,7 @@ function OrderDetailInner() {
 
       <div className="od-grid od-grid-single">
         <div className="col" style={{ gap: 20 }}>
-          {status === "request" && (
+          {status === "request" && !(proven && side === "client") && (
             <RequestPanel
               order={order}
               onAccept={() => {
@@ -537,13 +601,39 @@ function OrderDetailInner() {
             />
           )}
 
-          {status === "awaiting_payment" && (
+          {/*
+            WHO FUNDS: the client, never the worker. An order created from
+            /to/sasam-studio belongs to the person who sent the brief; if the
+            freelancer opens it they get an invoice with no "Sign & Lock" button —
+            a worker must never lock their own payment.
+          */}
+          {status === "awaiting_payment" && proven && side === "freelancer" && (
+            <div className="card pad col" style={{ gap: 12, borderColor: "rgba(0,236,151,0.35)", background: "rgba(0,236,151,0.06)" }}>
+              <div className="row between wrap">
+                <div>
+                  <h3 style={{ fontSize: 19 }}>{t("role.invoiceTitle")}</h3>
+                  <p className="muted" style={{ fontSize: 13.5, marginTop: 3 }}>
+                    {t("role.invoiceBody", {
+                      client: order.client.nearAccount || order.client.name,
+                      near: String(lockDepositNear(order.nearAmount ?? usdToNear(order.amount))),
+                    })}
+                  </p>
+                </div>
+                <Orin pose="idle" size={64} />
+              </div>
+              <div className="tiny muted">{t("role.invoiceNote")}</div>
+            </div>
+          )}
+
+          {status === "awaiting_payment" && canFund && (
             <NearDepositPanel
               order={order}
               onchainId={onchainId}
               log={log}
               flash={flash}
               isCustom={isCustom}
+              expectedClient={order.client.nearAccount}
+              viewerAccount={session.near?.accountId}
               onFunded={(hash) => {
                 if (hash) setTxHash(hash);
                 setStatus("in_escrow");
@@ -788,6 +878,8 @@ function NearDepositPanel({
   onFunded,
   flash,
   isCustom = false,
+  expectedClient,
+  viewerAccount,
 }: {
   order: Order;
   onchainId: string;
@@ -795,6 +887,10 @@ function NearDepositPanel({
   onFunded: (txHash?: string) => void;
   flash: (msg: string) => void;
   isCustom?: boolean;
+  /** Wallet that must pay this escrow (the client who sent the brief). */
+  expectedClient?: string;
+  /** Wallet currently signed in, if any. */
+  viewerAccount?: string;
 }) {
   const { t, money } = useI18n();
   const { me, walletConnected, walletId, session } = useMe();
@@ -834,14 +930,24 @@ function NearDepositPanel({
         }
         const signerAcct = session.near?.accountId || "";
         /**
-         * WHO THE ESCROW PAYS — this is the whole point of the two-account flow.
-         *
-         * On /to/<handle> the client is funding a named freelancer's work, so that
-         * handle becomes rec.freelancer and only that account may deliver. Everywhere
-         * else the signing wallet funds its own escrow and the relayer is the worker
-         * (the contract refuses client == freelancer, so it can never be both).
+         * WHO THE ESCROW PAYS — the freelancer who owns this order, never the relayer
+         * and never the signer. On /to/sasam-studio that is sasam.testnet, so only
+         * sasam.testnet can deliver and only the payer can release.
          */
         const namedFreelancer = freelancerFor(order).accountId;
+
+        /**
+         * And the payer must be the client. If a different wallet is connected, the
+         * contract would record THEM as the client — i.e. the freelancer paying
+         * himself. Stop before the wallet prompt and say it plainly.
+         */
+        const payer = session.near?.accountId || "";
+        const expected = String(expectedClient || "").toLowerCase();
+        if (expected && payer && payer.toLowerCase() !== expected) {
+          throw new Error(
+            `WRONG_SIGNER — this escrow must be funded by the client (${expectedClient}), but this browser is signed in as ${payer}. Open the client's wallet, or ask the client to fund it.`
+          );
+        }
         const walletLabel = signerAcct ? `${walletId || "wallet"}: ${signerAcct}` : "wallet";
         const cbUrl =
           typeof window !== "undefined"
@@ -894,7 +1000,7 @@ function NearDepositPanel({
           action: "fund",
           orderId: order.id,
           onchainOrderId: onchainId,
-          freelancerId: me.nearAccount,
+          freelancerId: freelancerFor(order).accountId,
           amountUsd: order.amount,
           nearAmount: nearAmt,
           termsHash: order.termsHash ?? `sha256:${onchainId}`,
@@ -1178,6 +1284,8 @@ function SealedCertificatePanel({
    */
   const depositNear = lockDepositNear(order.nearAmount ?? usdToNear(order.amount));
   const nearAmt = depositNear;
+  /** Who actually received the payout: the escrow's worker, not the viewer. */
+  const workerForSeal = order.freelancerAccount || freelancerFor(order).accountId;
   const isRealTestnetTx = Boolean(txHash && txHash.length >= 40 && !txHash.endsWith("NearTx7x9Q"));
 
   useEffect(() => {
@@ -1214,7 +1322,7 @@ function SealedCertificatePanel({
         <div>
           <h2 style={{ fontSize: 25, color: "var(--mint)" }}>{t("paid.title")}</h2>
           <p className="muted" style={{ fontSize: 13.5, marginTop: 3 }}>
-            {t("paid.sub", { amount: money(order.amount), near: `${nearAmt} NEAR`, acct: me.nearAccount })}
+            {t("paid.sub", { amount: money(order.amount), near: `${nearAmt} NEAR`, acct: order.freelancerAccount || workerForSeal })}
           </p>
         </div>
       </div>
@@ -1229,7 +1337,7 @@ function SealedCertificatePanel({
 
         <div style={{ margin: "16px 0", padding: "11px 14px", borderRadius: 11, background: "rgba(255,255,255,0.035)", border: "1px solid rgba(255,255,255,0.09)", fontSize: 12 }} className="mono col">
           <div className="row between"><span className="muted">{t("cert.from")}:</span><b>{order.client.nearAccount || order.client.name}</b></div>
-          <div className="row between"><span className="muted">{t("cert.to")}:</span><b style={{ color: "#00ec97" }}>{me.nearAccount}</b></div>
+          <div className="row between"><span className="muted">{t("cert.to")}:</span><b style={{ color: "#00ec97" }}>{order.freelancerAccount || workerForSeal}</b></div>
           <div className="row between"><span className="muted">Vault:</span><b>{NEAR_CONTRACT_ID}</b></div>
           <div className="row between"><span className="muted">Seal ID:</span><b style={{ color: "#fbbf24" }}>{sealCode}</b></div>
           {isRealTestnetTx && (

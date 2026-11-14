@@ -15,7 +15,17 @@ export function moneyPos(s: Status): 0 | 1 | 2 {
 
 export function MoneyRail({ order, status, role }: { order: Order; status: Status; role: "client" | "freelancer" }) {
   const { t, money, nearOf } = useI18n();
-  const { me } = useMe();
+  const { me, session } = useMe();
+  /**
+   * The rail shows the two real parties of THIS escrow, not the viewer: paying the
+   * worker is one account, receiving is the other, and the viewer is labelled
+   * "you" only when the session is actually proven to be that account.
+   */
+  const clientAcct = order.client.nearAccount || order.client.nearAccount || "client.testnet";
+  const workerAcct = order.freelancerAccount || me.nearAccount;
+  const viewerAcct = session.near?.accountId?.toLowerCase();
+  const isClientViewer = Boolean(viewerAcct && viewerAcct === clientAcct.toLowerCase());
+  const isWorkerViewer = Boolean(viewerAcct && viewerAcct === workerAcct.toLowerCase());
   const pos = moneyPos(status);
   const funded = pos > 0;
   const coinLeft = ["16.66%", "50%", "83.33%"][pos];
@@ -90,7 +100,15 @@ export function MoneyRail({ order, status, role }: { order: Order; status: Statu
           </div>
         </div>
 
-        <Node i={0} name={order.client.name.split(" ")[0] + " · " + t("rail.client")} sub={<>{order.client.nearAccount || order.client.city} <Country code={order.client.country} /></>}>
+        <Node
+          i={0}
+          name={order.client.name.split(" ")[0] + " · " + t("rail.client")}
+          sub={
+            <>
+              {isClientViewer ? t("rail.youPay") : clientAcct} <Country code={order.client.country} />
+            </>
+          }
+        >
           <Avatar p={order.client} size={44} />
         </Node>
 
@@ -111,7 +129,15 @@ export function MoneyRail({ order, status, role }: { order: Order; status: Statu
         <Node
           i={2}
           name={me.name.split(" ")[0] + " · " + t("rail.you")}
-          sub={<>{role === "client" ? t("rail.clientLocks") : me.nearAccount}</>}
+          sub={
+            <>
+              {isWorkerViewer
+                ? t("rail.youReceive")
+                : role === "client"
+                ? t("rail.clientLocks")
+                : workerAcct}
+            </>
+          }
         >
           <Avatar p={{ initials: initialsOf(me.name), color: ME_COLOR }} size={44} photo={me.photo} />
         </Node>

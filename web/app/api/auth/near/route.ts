@@ -25,7 +25,7 @@ export async function POST(req: Request) {
 
   if (!isValidNearAccountId(claimed)) {
     return NextResponse.json(
-      { ok: false, error: "Invalid NEAR account format (example: raka-studio.testnet or alice.near)" },
+      { ok: false, error: "Invalid NEAR account format (example: sasam.testnet or alice.near)" },
       { status: 400 }
     );
   }

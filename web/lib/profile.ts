@@ -149,11 +149,15 @@ export function sanitizeProfile(input: unknown, fallback: MeProfile): MeProfile 
   };
 }
 
-/** Shared sandbox freelancer persona — backed by real `raka.nearsignet-protocol.testnet` account on NEAR Testnet. */
+/**
+ * The freelancer persona shown in the UI. This is the account a client pays when
+ * they open /to/sasam-studio and fund the escrow — the platform relayer
+ * (NEAR_FREELANCER_DEFAULT) is only a fallback worker for untargeted demo runs.
+ */
 export const ME_PROFILE_FALLBACK: MeProfile = {
   name: "Sasam",
   handle: "sasam-studio",
-  nearAccount: "raka.nearsignet-protocol.testnet",
+  nearAccount: "sasam.testnet",
   city: "Yogyakarta",
   country: "ID",
   bio: "3D motion artist, product visualizer & Web3 UI designer in Yogyakarta. Escrows lock in nearsignet-protocol.testnet, deliverables are inspected in-browser + verified by a scoped AI agent, and payouts settle directly to my NEAR wallet.",

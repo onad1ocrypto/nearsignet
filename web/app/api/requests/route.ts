@@ -23,7 +23,7 @@ const clean = (s: unknown, max: number) => String(s ?? "").replace(/\s+/g, " ").
 
 export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as Record<string, unknown>;
-  const handle = clean(b.handle, 32).toLowerCase() || "raka-studio";
+  const handle = clean(b.handle, 32).toLowerCase() || "sasam-studio";
   const name = clean(b.name, 80);
   const email = clean(b.email, 120);
   const nearAccount = clean(b.nearAccount, 64).toLowerCase() || undefined;

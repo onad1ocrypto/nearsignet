@@ -7,14 +7,14 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const s = verifySession(req.cookies.get(SESSION_COOKIE)?.value);
-  const accountId = s?.near?.accountId || "raka-studio.testnet";
+  const accountId = s?.near?.accountId || "sasam.testnet";
   const pub = await getMyPublication(accountId);
   return NextResponse.json({ storeEnabled: storeEnabled(), ...pub });
 }
 
 export async function POST(req: NextRequest) {
   const s = verifySession(req.cookies.get(SESSION_COOKIE)?.value);
-  const accountId = s?.near?.accountId || "raka-studio.testnet";
+  const accountId = s?.near?.accountId || "sasam.testnet";
   const body = await req.json().catch(() => ({}));
   const clean = sanitizeProfile(body, ME_PROFILE_FALLBACK);
   const res = await publishProfile(accountId, clean);

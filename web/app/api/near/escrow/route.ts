@@ -160,7 +160,7 @@ export async function POST(req: Request) {
           methodName: "create_and_fund_escrow",
           args: {
             order_id: rawId,
-            freelancer: relayerFreelancer,
+            freelancer: safeFreelancer,
             terms_hash: termsHash,
             criteria_count: totalCount,
             usd_cents: Math.round(amountUsd * 100),
@@ -209,7 +209,7 @@ export async function POST(req: Request) {
           methodName: "create_and_fund_escrow",
           args: {
             order_id: rawId,
-            freelancer: relayerFreelancer,
+            freelancer: safeFreelancer,
             terms_hash: termsHash,
             criteria_count: totalCount,
             usd_cents: Math.round(amountUsd * 100),
@@ -286,7 +286,7 @@ export async function POST(req: Request) {
           methodName: "create_and_fund_escrow",
           args: {
             order_id: rawId,
-            freelancer: relayerFreelancer,
+            freelancer: safeFreelancer,
             terms_hash: termsHash,
             criteria_count: totalCount,
             usd_cents: Math.round(amountUsd * 100),

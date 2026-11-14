@@ -18,7 +18,7 @@ function SignInInner() {
   const sp = useSearchParams();
   const next = sp.get("next") || "/dashboard";
 
-  const [accountId, setAccountId] = useState("raka.nearsignet-protocol.testnet");
+  const [accountId, setAccountId] = useState("");
   const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc" | "faucet" | "prove">("");
   const [err, setErr] = useState("");
   const [showRpc, setShowRpc] = useState(false);
@@ -415,7 +415,7 @@ function SignInInner() {
                   </button>
                 </div>
                 <div className="row wrap" style={{ gap: 6, marginTop: 6 }}>
-                  {[`raka.${NEAR_CONTRACT_ID}`, `liam.${NEAR_CONTRACT_ID}`, NEAR_CONTRACT_ID].map((preset) => (
+                  {[`sasam.testnet`, `liam.${NEAR_CONTRACT_ID}`, NEAR_CONTRACT_ID].map((preset) => (
                     <button
                       key={preset}
                       type="button"

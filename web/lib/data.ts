@@ -76,13 +76,19 @@ export function freelancerFor(order: { freelancerAccount?: string; client?: { ne
   const named = String(order.freelancerAccount || "").trim().toLowerCase();
   const client = String(order.client?.nearAccount || "").trim().toLowerCase();
   if (named && named !== client) return { accountId: named, named: true };
+  // The persona is the default worker, but the contract refuses client == freelancer,
+  // so a brief sent by the persona's own wallet falls back to the relayer.
+  if (FREELANCER_PERSONA !== client) return { accountId: FREELANCER_PERSONA, named: true };
   return { accountId: NEAR_FREELANCER_DEFAULT, named: false };
 }
+
+/** Wallet of the freelancer persona (see lib/profile.ts) — the default demo worker. */
+export const FREELANCER_PERSONA = "sasam.testnet";
 
 export const ME: Person = {
   name: "Sasam",
   handle: "sasam-studio",
-  nearAccount: "raka.nearsignet-protocol.testnet",
+  nearAccount: FREELANCER_PERSONA,
   initials: "RP",
   city: "Yogyakarta",
   country: "ID",
@@ -173,7 +179,7 @@ const demoFromJob = (job: (typeof DEMO_JOBS)[number], i: number): Order => {
     client: { ...client },
     amount: job.amount,
     nearAmount: demoDepositNear(job.amount),
-    freelancerAccount: ME.nearAccount,
+    freelancerAccount: FREELANCER_PERSONA,
     currency: "USD",
     due,
     created: new Date(Date.now() - (i + 1) * 86_400_000).toISOString().slice(0, 10),
