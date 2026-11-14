@@ -851,6 +851,20 @@ function ReviewPanel({
    * button is honest instead of firing a transaction the wallet would reject.
    */
   const deadlineNs = Number(probe?.reviewDeadlineNs ?? 0);
+  const [, forceTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => forceTick((n) => n + 1), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const msLeft = deadlineNs > 0 ? deadlineNs / 1e6 - Date.now() : 0;
+  const countdownLabel =
+    deadlineNs <= 0
+      ? "—"
+      : msLeft <= 0
+      ? "EXPIRED"
+      : `${String(Math.floor(msLeft / 3600000)).padStart(2, "0")}:${String(
+          Math.floor((msLeft % 3600000) / 60000)
+        ).padStart(2, "0")}:${String(Math.floor((msLeft % 60000) / 1000)).padStart(2, "0")}`;
   const timeoutReady = Boolean(probe?.exists && deadlineNs > 0 && Date.now() * 1e6 >= deadlineNs);
   const deadlineLabel =
     deadlineNs > 0
@@ -929,7 +943,20 @@ function ReviewPanel({
               : t("rev.b", { name: order.client.name, n: order.criteria.length, amount: money(order.amount) })}
           </p>
         </div>
-        <span className="mono badge" style={{ borderColor: "rgba(245,158,11,0.45)", color: "#fbbf24" }}>71:59:42</span>
+        <span
+          className="mono badge"
+          title={
+            deadlineNs > 0
+              ? `On-chain review_deadline_ns — auto-release unlocks at ${deadlineLabel}`
+              : "No on-chain review deadline yet (escrow not verified)"
+          }
+          style={{
+            borderColor: msLeft <= 0 && deadlineNs > 0 ? "rgba(0,236,151,0.5)" : "rgba(245,158,11,0.45)",
+            color: msLeft <= 0 && deadlineNs > 0 ? "var(--mint)" : "#fbbf24",
+          }}
+        >
+          {countdownLabel}
+        </span>
       </div>
 
       <div className="row wrap" style={{ gap: 10 }}>
@@ -956,6 +983,11 @@ function ReviewPanel({
           <Icon name="clock" size={15} /> {busy === "timeout" ? "Claiming on Testnet…" : t("rev.ff")}
         </button>
       </div>
+      <p className="tiny muted" style={{ marginTop: 2 }}>
+        ⓘ Fast-Forward is claimed by the freelancer account, so NearSignet relays it —
+        <strong> no wallet prompt is expected</strong>. Only Approve &amp; Release and
+        Mediation Settlement are signed by your wallet.
+      </p>
     </div>
   );
 }
