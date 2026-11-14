@@ -165,6 +165,15 @@ function OrderDetailInner() {
   const [status, setStatus] = useState<Status>(order.status);
   useEffect(() => { setStatus(order.status); }, [order]);
 
+  const [chainEscrow, setChainEscrow] = useState<EscrowProbe | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const run = () => void probeEscrow(onchainId).then((p) => { if (alive) setChainEscrow(p); });
+    run();
+    const t = setInterval(run, 15_000);
+    return () => { alive = false; clearInterval(t); };
+  }, [onchainId, status]);
+
   const [walletHealth, setWalletHealth] = useState<{ walletId: string | null; canSign: boolean; hasSession: boolean } | null>(null);
   useEffect(() => {
     let alive = true;
@@ -541,7 +550,16 @@ function OrderDetailInner() {
             </div>
             <div className="kv"><span>On-Chain Order ID</span><b className="mono tiny" style={{ color: "var(--mint)" }}>{onchainId}</b></div>
             <div className="kv"><span>{t("od.escrowAmt")}</span><b className="mono">{money(order.amount)} ({nearDisplay})</b></div>
-            <div className="kv"><span>{t("od.protection")}</span><b className="mono">{t("od.protVal")}</b></div>
+            <div className="kv">
+              <span>{t("od.protection")}</span>
+              <b className="mono">
+                {chainEscrow?.exists && chainEscrow.reviewDeadlineNs && Number(chainEscrow.reviewDeadlineNs) > 0
+                  ? `Ends ${new Date(Number(chainEscrow.reviewDeadlineNs) / 1e6).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} UTC`
+                  : chainEscrow?.exists
+                  ? "Starts after verification passes"
+                  : "Not funded on-chain yet"}
+              </b>
+            </div>
             <div className="kv"><span>Orin Verifier</span><b className="mono tiny" style={{ color: "#fbbf24" }}>{NEAR_VERIFIER_ID}</b></div>
             {order.termsHash && <div className="kv"><span>Terms Hash</span><b className="mono tiny">{order.termsHash.slice(0, 18)}…</b></div>}
           </div>
@@ -816,6 +834,18 @@ function ReviewPanel({
   // A wallet can sign only when it holds a key for the contract AND we have a session account.
   const canWalletSign = Boolean(walletConnected && session.near?.accountId);
 
+  /**
+   * `claim_after_timeout` reverts with "72-hour client review window has not
+   * expired yet" until the on-chain deadline passes. Read the real deadline so the
+   * button is honest instead of firing a transaction the wallet would reject.
+   */
+  const deadlineNs = Number(probe?.reviewDeadlineNs ?? 0);
+  const timeoutReady = Boolean(probe?.exists && deadlineNs > 0 && Date.now() * 1e6 >= deadlineNs);
+  const deadlineLabel =
+    deadlineNs > 0
+      ? new Date(deadlineNs / 1e6).toLocaleString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) + " UTC"
+      : "unknown";
+
   const settle = async (mode: "release" | "timeout_claim") => {
     setBusy(mode === "release" ? "release" : "timeout");
     try {
@@ -900,7 +930,18 @@ function ReviewPanel({
             ? "Approve & Release in NEAR Wallet"
             : t("rev.approve", { name: order.client.name.split(" ")[0] })}
         </button>
-        <button className="btn" disabled={!!busy} onClick={() => settle("timeout_claim")}>
+        <button
+          className="btn"
+          disabled={!!busy || !timeoutReady}
+          title={
+            !probe?.exists
+              ? "This escrow is not funded on-chain yet — fund it first."
+              : !timeoutReady
+              ? `The 72h review window is still open. It ends ${deadlineLabel}.`
+              : "Review window expired — the freelancer can claim the escrow."
+          }
+          onClick={() => settle("timeout_claim")}
+        >
           <Icon name="clock" size={15} /> {busy === "timeout" ? "Claiming on Testnet…" : t("rev.ff")}
         </button>
       </div>
