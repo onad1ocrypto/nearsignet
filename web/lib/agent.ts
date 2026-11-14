@@ -3,7 +3,7 @@
    - Contract Agent: brief -> title/amount/machine-checkable criteria.
    - Verification Agent: criteria + delivery -> per-criterion verdicts.
    - Mediator Agent: structured evidence + claim -> basis-point split.
-   Supports `NEAR_AI_API_KEY` (`https://cloud.near.ai/v1/chat/completions`,
+   Supports `NEAR_AI_API_KEY` (`https://cloud-api.near.ai/v1/chat/completions`,
    TEE-backed confidential inference) or any OpenAI-compatible `LLM_API_KEY`,
    with deterministic local rule execution when no key is set.
    ========================================================= */
@@ -11,7 +11,10 @@
 import { draftCriteria, type Criterion } from "./data";
 import type { Lang } from "./dict";
 
-export type DraftResult = ReturnType<typeof draftCriteria> & { source: "near-ai" | "llm" | "local" };
+export type DraftResult = ReturnType<typeof draftCriteria> & {
+  source: "near-ai" | "llm" | "local";
+  model?: string;
+};
 
 const apiKey = () => process.env.NEAR_AI_API_KEY || process.env.LLM_API_KEY || "";
 const isNearAi = () => Boolean(process.env.NEAR_AI_API_KEY);
@@ -28,49 +31,71 @@ const LLM_URL = () => {
 };
 
 const LLM_MODEL = () =>
-  process.env.NEAR_AI_MODEL || process.env.LLM_MODEL || (isNearAi() ? "zai-org/GLM-5.1-FP8" : "gpt-4o-mini");
+  process.env.NEAR_AI_MODEL ||
+  process.env.LLM_MODEL ||
+  (isNearAi() ? "deepseek-ai/DeepSeek-V4.1-Flash-1017" : "gpt-4o-mini");
 
 const ICONS = ["file", "image", "ruler", "palette", "clock", "text"] as const;
 
 const LLM_ATTEMPTS_PER_MODEL = 2;
-const LLM_ATTEMPT_TIMEOUT_MS = 20_000;
-const LLM_TOTAL_BUDGET_MS = 60_000;
-const PREVIEW_PAUSE_MS = 500;
+const LLM_ATTEMPT_TIMEOUT_MS = 18_000;
+const LLM_TOTAL_BUDGET_MS = 45_000;
+const PREVIEW_PAUSE_MS = 400;
 
 function llmModels(): string[] {
   const list = (process.env.LLM_MODELS ?? "").split(",").map((m) => m.trim()).filter(Boolean);
   if (list.length) return list.slice(0, 4);
   if (isNearAi() && !process.env.NEAR_AI_MODEL && !process.env.LLM_MODEL) {
-    return ["zai-org/GLM-5.1-FP8", "deepseek-ai/DeepSeek-V3.1"];
+    return [
+      "deepseek-ai/DeepSeek-V4.1-Flash-1017",
+      "anthropic/claude-haiku-5-5",
+      "z-ai/glm-5.3-flash",
+    ];
   }
   return [LLM_MODEL()];
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function llmAsk(model: string, system: string, user: string): Promise<Record<string, unknown> | null> {
+async function llmAsk(
+  model: string,
+  system: string,
+  user: string
+): Promise<{ data: Record<string, unknown>; model: string } | null> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), LLM_ATTEMPT_TIMEOUT_MS);
   try {
+    const payload: Record<string, unknown> = {
+      model,
+      max_tokens: 800,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    };
+    if (!model.startsWith("anthropic/claude-fable")) {
+      payload.temperature = 0.2;
+    }
     const r = await fetch(LLM_URL(), {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey()}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
+      body: JSON.stringify(payload),
       cache: "no-store",
       signal: ctl.signal,
     });
     if (!r.ok) return null;
-    const j = (await r.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = j.choices?.[0]?.message?.content ?? "";
+    const j = (await r.json()) as {
+      model?: string;
+      choices?: { message?: { content?: string; reasoning_content?: string } }[];
+    };
+    const text =
+      j.choices?.[0]?.message?.content ||
+      j.choices?.[0]?.message?.reasoning_content ||
+      "";
     const m = text.match(/\{[\s\S]*\}/);
-    return m ? (JSON.parse(m[0]) as Record<string, unknown>) : null;
+    return m
+      ? { data: JSON.parse(m[0]) as Record<string, unknown>, model: j.model || model }
+      : null;
   } catch {
     return null;
   } finally {
@@ -78,13 +103,16 @@ async function llmAsk(model: string, system: string, user: string): Promise<Reco
   }
 }
 
-async function llmJSON(system: string, user: string): Promise<Record<string, unknown> | null> {
+async function llmJSON(
+  system: string,
+  user: string
+): Promise<{ data: Record<string, unknown>; model: string } | null> {
   if (!llmEnabled()) return null;
   const deadline = Date.now() + LLM_TOTAL_BUDGET_MS;
   for (const model of llmModels()) {
     for (let attempt = 1; attempt <= LLM_ATTEMPTS_PER_MODEL; attempt++) {
-      const j = await llmAsk(model, system, user);
-      if (j) return j;
+      const out = await llmAsk(model, system, user);
+      if (out) return out;
       if (Date.now() > deadline) return null;
       if (attempt < LLM_ATTEMPTS_PER_MODEL) await sleep(PREVIEW_PAUSE_MS * attempt);
     }
@@ -119,7 +147,11 @@ Turn a raw freelance job brief into a clear contract anchored by machine-checkab
 
 export async function draftContract(brief: string, lang: Lang): Promise<DraftResult> {
   const local = draftCriteria(brief, lang);
-  const j = await llmJSON(CONTRACT_SYSTEM, `Brief:\n"""\n${brief.slice(0, 2000)}\n"""\n\nWrite labels in language: ${lang}`);
+  const out = await llmJSON(
+    CONTRACT_SYSTEM,
+    `Brief:\n"""\n${brief.slice(0, 2000)}\n"""\n\nWrite labels in language: ${lang}`
+  );
+  const j = out?.data;
   const raw = Array.isArray(j?.criteria) ? (j!.criteria as Record<string, unknown>[]) : null;
   if (raw && raw.length) {
     const criteria: Criterion[] = raw.slice(0, 5).map((c) => ({
@@ -136,6 +168,7 @@ export async function draftContract(brief: string, lang: Lang): Promise<DraftRes
       suggestedTitle: resolvedTitle,
       suggestedAmount: resolvedAmt ?? 300,
       source: isNearAi() ? "near-ai" : "llm",
+      model: out?.model,
     };
   }
   return { ...local, source: "local" };
@@ -179,6 +212,7 @@ export interface MediateVerdict {
   evidence: string[];
   nextStep: string;
   source: "near-ai" | "llm" | "local";
+  model?: string;
 }
 
 const SIGNALS: { key: string; weight: number; hard?: boolean; re: RegExp }[] = [
@@ -208,7 +242,7 @@ Rely on machine-checkable evidence first, claim text second. Reply with ONLY JSO
 
 export async function mediate(input: MediateInput): Promise<MediateVerdict> {
   const local = mediateLocal(input);
-  const j = await llmJSON(
+  const out = await llmJSON(
     MEDIATOR_SYSTEM,
     [
       `Order: ${input.orderId} · escrow value ${input.amount ?? "?"} USD`,
@@ -220,6 +254,7 @@ export async function mediate(input: MediateInput): Promise<MediateVerdict> {
       `Language for reasons/nextStep: ${input.lang ?? "en"}`,
     ].join("\n")
   );
+  const j = out?.data;
   const dec = String(j?.decision ?? "");
   if (["release", "refund_partial", "refund_full", "escalate"].includes(dec)) {
     const percent = Math.max(0, Math.min(100, Math.round(Number(j?.percent ?? (dec === "refund_full" ? 100 : dec === "release" ? 0 : 50)))));
@@ -232,6 +267,7 @@ export async function mediate(input: MediateInput): Promise<MediateVerdict> {
       evidence: Array.isArray(j?.evidence) ? (j!.evidence as unknown[]).map((r) => String(r)).slice(0, 8) : local.evidence,
       nextStep: String(j?.nextStep ?? local.nextStep).slice(0, 240),
       source: isNearAi() ? "near-ai" : "llm",
+      model: out?.model,
     };
   }
   return local;
