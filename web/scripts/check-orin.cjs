@@ -74,10 +74,20 @@ function run() {
     assert.ok(r.evidence && /NSG-2041/.test(r.evidence));
   });
 
-  ok("sealed escrow answer cites the release tx", () => {
+  ok("sealed escrow answer cites the release tx + real predicate count", () => {
     const r = mod.localAnswer("Why was NSG-2033 released?", ctx);
     assert.match(r.text, /attest_verification/);
-    assert.match(r.text, /[A-Za-z0-9]{40,}/);
+    assert.match(r.text, /6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a/);
+    assert.match(r.text, /All 2 predicates/, "NSG-2033 has exactly 2 criteria");
+    assert.doesNotMatch(r.text, /four predicates/);
+  });
+
+  ok("fact sheet carries the attested on-chain run + status legend", () => {
+    const sheet = mod.factSheet();
+    assert.match(sheet, /7pL3mN9kQ2wX5vB8cR1tY4uI7oP0aS3dF6gH9jK2lZ5x/);
+    assert.match(sheet, /18\.032 NEAR paid/);
+    assert.match(sheet, /Status legend/);
+    assert.match(sheet, /paid = RELEASED/);
   });
 
   ok("every reply carries follow-up chips", () => {

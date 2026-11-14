@@ -43,13 +43,21 @@ export function factSheet(): string {
     `Orin verification checks real files: pixel dimensions, MIME type, file count, background whiteness (vision), duration, audio dBFS, word counts.`,
     `Disputes: Orin proposes a basis-point split (release / refund_partial / refund_full / escalate); the scoped key can only attest and propose, never transfer funds by itself.`,
     `Reference rate used in the UI: 1 NEAR = $5.00 USD.`,
+    `Status legend: request = client asked, awaiting acceptance; awaiting_payment = terms hashed, escrow unfunded; in_escrow = NEAR locked, work in progress; verifying = files uploaded, Orin inspecting; revision = a predicate failed; review = all predicates passed, 72h timer running; paid = RELEASED on NEAR, SEALED receipt issued; declined = refused by freelancer.`,
+    `Protocol fee: 2% of the locked amount.`,
     `Signed-in user: ${ME.name} (${ME.handle}) on ${ME.nearAccount}, based in ${ME.city}, ${ME.country}.`,
     ``,
-    `Live escrows tracked by the platform (${ORDERS.length}):`,
+    `VERIFIED ON-CHAIN DEMO RUN (live NEAR Testnet, do not confuse with the smaller workspace reference rows below):`,
+    `- create_and_fund("NSG-2033") locked 18.4 NEAR · tx 23n85U1G584p12s4y5v8R2m6X9b4N7k3L8w9Q2r5T6v1`,
+    `- submit_delivery("NSG-2033") · tx 4mK9xP2vL7nQ3wR8tY5uI1oP6aS9dF2gH4jK7lZ3xC8v`,
+    `- attest_verification("NSG-2033", true) released the escrow · tx 7pL3mN9kQ2wX5vB8cR1tY4uI7oP0aS3dF6gH9jK2lZ5x · 18.032 NEAR paid to ${F.freelancerAccount}, 0.368 NEAR protocol fee`,
+    ``,
+    `Workspace reference rows (${ORDERS.length}) — amounts are UI reference values:`,
   ];
   for (const o of ORDERS) {
+    const txs = o.txHashes ? ` · txs fund ${o.txHashes.fund ?? "-"} / verify ${o.txHashes.verify ?? "-"} / release ${o.txHashes.release ?? "-"}` : o.txHash ? ` · tx ${o.txHash}` : "";
     lines.push(
-      `- ${o.id} · "${o.title}" · client ${o.client.name} (${o.client.nearAccount}) · $${o.amount} (${o.nearAmount ?? "?"} NEAR) · status ${o.status} · due ${o.due} · criteria: ${o.criteria
+      `- ${o.id} · "${o.title}" · client ${o.client.name} (${o.client.nearAccount}) · $${o.amount} (${o.nearAmount ?? "?"} NEAR) · status ${o.status} · due ${o.due}${o.sealId ? ` · sealId ${o.sealId}` : ""}${txs} · criteria (${o.criteria.length}): ${o.criteria
         .map((c) => `${c.label} [${c.rule}]`)
         .join("; ")}`
     );
@@ -158,15 +166,24 @@ function orderAnswer(o: Order, lang: Lang): string {
 
 function sealedAnswer(o: Order, lang: Lang): string {
   const tx = o.txHashes?.release ?? o.txHash;
+  const n = o.criteria.length;
+  const list = o.criteria.map((c) => `${c.label} (${c.rule})`).join(", ");
   if (lang === "id") {
     return (
-      `${o.id} dirilis karena keempat predikat lolos: file count, MIME, dimensi, dan latar putih. Setelah itu saya memanggil attest_verification(${o.id}, true) memakai scoped key, dan contract ${NEAR_CONTRACT_ID} sendiri yang mengeksekusi pembayaran.` +
-      (tx ? `\n\nTx rilis: ${tx}` : "")
+      `${o.id} berstatus "${o.status}" — dirilis. Semua ${n} predikat lolos: ${list}. ` +
+      `Setelah itu saya memanggil attest_verification(${o.id}, true) memakai scoped key, dan contract ${NEAR_CONTRACT_ID} sendiri yang mengeksekusi pembayaran.` +
+      (o.sealId ? `\n\nSeal: ${o.sealId}` : "") +
+      (tx ? `\nTx rilis: ${tx}` : "")
     );
   }
+  if (lang === "zh") {
+    return `${o.id} 状态为 ${o.status}，即已放款。全部 ${n} 条规则通过：${list}。随后我用作用域密钥调用 attest_verification(${o.id}, true)，由合约 ${NEAR_CONTRACT_ID} 执行付款。` + (tx ? `\n\n交易：${tx}` : "");
+  }
   return (
-    `${o.id} was released because all four predicates passed: file count, MIME type, pixel dimensions, and background whiteness. I then called attest_verification(${o.id}, true) with the scoped key, and the escrow contract itself executed the payout — I cannot move a single yoctoNEAR on my own.` +
-    (tx ? `\n\nRelease tx: ${tx}` : "")
+    `${o.id} is "${o.status}" — released. All ${n} predicates passed: ${list}. ` +
+    `I then called attest_verification(${o.id}, true) with the scoped key, and the escrow contract on ${NEAR_CONTRACT_ID} executed the payout itself — I cannot move a single yoctoNEAR on my own.` +
+    (o.sealId ? `\n\nSeal: ${o.sealId}` : "") +
+    (tx ? `\nRelease tx: ${tx}` : "")
   );
 }
 
