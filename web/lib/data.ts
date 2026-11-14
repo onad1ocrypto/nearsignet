@@ -4,6 +4,8 @@
    `nearsignet-protocol.testnet` (NEAR Testnet).
    ========================================================= */
 
+import { demoDepositNear } from "./near";
+
 export type Direction = "from_client" | "to_client" | "by_me";
 export type Status =
   | "request"          // client requested work, awaiting freelancer acceptance
@@ -147,7 +149,7 @@ const demoFromJob = (job: (typeof DEMO_JOBS)[number], i: number): Order => {
     title: job.title,
     client: { ...client },
     amount: job.amount,
-    nearAmount: job.amount / 5,
+    nearAmount: demoDepositNear(job.amount),
     currency: "USD",
     due,
     created: new Date(Date.now() - (i + 1) * 86_400_000).toISOString().slice(0, 10),
@@ -166,7 +168,7 @@ export const ORDERS: Order[] = [
     direction: "from_client",
     title: "3D Sneaker Render Pack · 20 angles",
     client: { name: "Liam Carter", nearAccount: "liam-client.testnet", initials: "LC", city: "Toronto", country: "CA", color: "var(--sky-l)" },
-    amount: 150, nearAmount: 30, currency: "USD", due: "2026-11-16", created: "2026-11-04",
+    amount: 150, nearAmount: demoDepositNear(150), currency: "USD", due: "2026-11-16", created: "2026-11-04",
     status: "in_escrow",
     brief: "Hey Sasam! Need 20 clean studio renders of our trail sneaker for our storefront launch. Pure white background, at least 2000px on the long edge, JPG format. Budget is $150 (30 NEAR locked in escrow).",
     criteria: [
@@ -183,7 +185,7 @@ export const ORDERS: Order[] = [
     direction: "from_client",
     title: "Wallet Launch Vertical Cut · 9:16, <60s",
     client: { name: "Hana Sato", nearAccount: "hana-tokyo.testnet", initials: "HS", city: "Tokyo", country: "JP", color: "var(--lav-l)" },
-    amount: 220, nearAmount: 44, currency: "USD", due: "2026-11-20", created: "2026-11-08",
+    amount: 220, nearAmount: demoDepositNear(220), currency: "USD", due: "2026-11-20", created: "2026-11-08",
     status: "in_escrow",
     brief:
       "We recorded raw screen captures for our NEAR mobile wallet teaser and need a crisp vertical reel: 1 video, 9:16 aspect, under 60 seconds, MP4/WebM, mixed audio track — plus our signet emblem visible in the opening 3 seconds.",
@@ -203,7 +205,7 @@ export const ORDERS: Order[] = [
     direction: "from_client",
     title: "Brand Icon System for DeFi Vault",
     client: { name: "Elena Rostova", nearAccount: "elena-zurich.testnet", initials: "ER", city: "Zurich", country: "CH", color: "var(--lemon-l)" },
-    amount: 320, nearAmount: 64, currency: "USD", due: "2026-11-18", created: "2026-11-10",
+    amount: 320, nearAmount: demoDepositNear(320), currency: "USD", due: "2026-11-18", created: "2026-11-10",
     status: "request",
     brief: "Hi Sasam! Building a non-custodial vault protocol. Looking for 3 icon concepts, exported in SVG + PNG, low-saturation slate & mint palette, delivered by Nov 18. Budget $320.",
     criteria: [
@@ -220,7 +222,7 @@ export const ORDERS: Order[] = [
     direction: "to_client",
     title: "App Store Feature Cards · 6 screens",
     client: { name: "Mateo Silva", nearAccount: "mateo-sp.testnet", initials: "MS", city: "São Paulo", country: "BR", color: "var(--mint-l)" },
-    amount: 90, nearAmount: 18, currency: "USD", due: "2026-11-13", created: "2026-11-05",
+    amount: 90, nearAmount: demoDepositNear(90), currency: "USD", due: "2026-11-13", created: "2026-11-05",
     status: "review",
     brief: "6-screen feature showcase carousel for our cross-chain swap app. 1080×1350px, crisp PNG exports.",
     criteria: [
@@ -236,7 +238,7 @@ export const ORDERS: Order[] = [
     direction: "to_client",
     title: "SDK Quickstart Docs · 4 guides",
     client: { name: "Nadia Al-Mansoor", nearAccount: "nadia-dubai.testnet", initials: "NA", city: "Dubai", country: "AE", color: "var(--peach-l)" },
-    amount: 240, nearAmount: 48, currency: "USD", due: "2026-11-22", created: "2026-11-09",
+    amount: 240, nearAmount: demoDepositNear(240), currency: "USD", due: "2026-11-22", created: "2026-11-09",
     status: "awaiting_payment",
     brief: "Write English developer guides for 4 pages (Install, Auth, Escrow, Webhooks) for our payment SDK. 300–500 words each, clear technical tone, include keywords 'testnet' and 'NEAR'.",
     criteria: [
@@ -252,7 +254,7 @@ export const ORDERS: Order[] = [
     direction: "from_client",
     title: "Storefront Header + Verified Emblem",
     client: { name: "Liam Carter", nearAccount: "liam.nearsignet-protocol.testnet", initials: "LC", city: "London", country: "GB", color: "var(--mint-l)" },
-    amount: 75, nearAmount: 0.5, currency: "USD", due: "2026-11-12", created: "2026-11-02",
+    amount: 75, nearAmount: demoDepositNear(75), currency: "USD", due: "2026-11-12", created: "2026-11-02",
     status: "paid",
     brief: "Marketplace header 3360×840 and a 500×500 square avatar emblem. Emerald & obsidian palette.",
     criteria: [
@@ -274,7 +276,7 @@ export const ORDERS: Order[] = [
     direction: "to_client",
     title: "Hackathon Booth Print Sheet · A4",
     client: { name: "Diego Morales", nearAccount: "diego-mx.testnet", initials: "DM", city: "Mexico City", country: "MX", color: "var(--pink-l)" },
-    amount: 180, nearAmount: 36, currency: "USD", due: "2026-11-15", created: "2026-11-06",
+    amount: 180, nearAmount: demoDepositNear(180), currency: "USD", due: "2026-11-15", created: "2026-11-06",
     status: "revision",
     brief: "Two-page A4 booth handout, print-ready PDF with 3mm bleed, bilingual Spanish + English.",
     criteria: [
@@ -290,7 +292,7 @@ export const ORDERS: Order[] = [
     direction: "to_client",
     title: "Seed Round Deck Polish · 12 slides",
     client: { name: "Min-jun Park", nearAccount: "minjun-kr.testnet", initials: "MP", city: "Seoul", country: "KR", color: "var(--sky-l)" },
-    amount: 210, nearAmount: 42, currency: "USD", due: "2026-11-08", created: "2026-11-01",
+    amount: 210, nearAmount: demoDepositNear(210), currency: "USD", due: "2026-11-08", created: "2026-11-01",
     status: "paid",
     brief: "Polish a 12-slide protocol seed deck. Unified diagrams, custom icons, export to PDF + PPTX.",
     criteria: [
@@ -307,7 +309,7 @@ export const ORDERS: Order[] = [
     direction: "from_client",
     title: "NFT Mascot Trait Pack · 8 stickers",
     client: { name: "Freja Lind", nearAccount: "freja-se.testnet", initials: "FL", city: "Stockholm", country: "SE", color: "var(--lemon-l)" },
-    amount: 400, nearAmount: 80, currency: "USD", due: "2026-11-26", created: "2026-11-11",
+    amount: 400, nearAmount: demoDepositNear(400), currency: "USD", due: "2026-11-26", created: "2026-11-11",
     status: "request",
     brief: "8 die-cut character trait stickers for an on-chain badge series. 300 DPI, transparent PNG.",
     criteria: [

@@ -13,7 +13,7 @@ import {
   recycleSandboxNear,
   relayerConfigured,
   sha256Tag,
-  usdToNear,
+  demoDepositNear,
   verifierConfigured,
 } from "@/lib/near";
 
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
   const action = b.action || "fund";
   const rawId = String(b.onchainOrderId || b.orderId || "NSG-0000").slice(0, 60);
   const amountUsd = Number(b.amountUsd || 150);
-  const displayNear = Number(b.nearAmount || usdToNear(amountUsd));
+  const displayNear = Number(b.nearAmount || demoDepositNear(amountUsd));
   // Testnet stake per sandbox run (0.12 NEAR >= 0.01 min deposit, recycled on release for infinite judge runs)
   const sandboxStakeYocto = nearToYocto("0.12");
   const termsHash = String(b.termsHash || sha256Tag({ orderId: rawId, criteria: b.criteria || [] }));

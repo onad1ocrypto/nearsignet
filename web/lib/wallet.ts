@@ -219,6 +219,33 @@ export function buildFunctionCallAction(
   };
 }
 
+/**
+ * near-api-js Action instance for INJECTED wallets, which convert actions with
+ * `najActionToInternal()` (see @near-wallet-selector/core). Lazily imported so the
+ * class is never bundled for server render, and the getter `action.functionCall`
+ * is what the converter actually reads.
+ */
+export function najFunctionCallAction(
+  methodName: string,
+  args: Record<string, unknown>,
+  gas: string,
+  deposit: string
+) {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { actionCreators } = require("@near-js/transactions") as {
+    actionCreators: {
+      functionCall: (
+        methodName: string,
+        args: Uint8Array | Record<string, unknown>,
+        gas?: bigint,
+        deposit?: bigint
+      ) => unknown;
+    };
+  };
+  const encoded = new TextEncoder().encode(JSON.stringify(args));
+  return actionCreators.functionCall(methodName, encoded, BigInt(gas), BigInt(deposit));
+}
+
 export async function signNearWalletCall({
   methodName,
   args,
@@ -246,16 +273,29 @@ export async function signNearWalletCall({
     );
   }
 
-  // 2. Build the selector-native action and prove it serialises non-empty.
-  const action = buildFunctionCallAction(methodName, args, gas, depositYocto);
-  if (!action.params.methodName || typeof action.params.args !== "object") {
-    throw new Error("Malformed wallet action — refusing to send an empty payload");
-  }
-
+  // 2. Resolve the wallet first: what it is decides which action shape it accepts.
   let wallet = await selector.wallet(active.walletId as SupportedWalletId);
   if (typeof (wallet as unknown as { signAndSendTransaction?: unknown }).signAndSendTransaction !== "function") {
     throw new Error("This wallet does not expose signAndSendTransaction. Pick Meteor Wallet or Nightly Wallet.");
   }
+
+  /**
+   * CRITICAL: Meteor and Nightly are *injected* wallets. The selector converts every
+   * action with `najActionToInternal()`, which switches on near-api-js Action CLASS
+   * getters (`action.functionCall`). The plain `{ type: "FunctionCall", params }`
+   * object therefore throws "Unsupported NAJ action" inside the wallet — no prompt,
+   * no transaction. Browser wallets get real NAJ Action instances; only
+   * wallet-routed (redirect) wallets keep the JSON shape.
+   */
+  const walletType = (wallet as unknown as { type?: string }).type;
+  const needsNajActions = walletType === "injected";
+
+  // 3. Build the action in the shape this wallet can actually serialise.
+  const jsonAction = buildFunctionCallAction(methodName, args, gas, depositYocto);
+  if (!jsonAction.params.methodName || typeof jsonAction.params.args !== "object") {
+    throw new Error("Malformed wallet action — refusing to send an empty payload");
+  }
+  const action = needsNajActions ? najFunctionCallAction(methodName, args, gas, depositYocto) : jsonAction;
 
   const params = {
     signerId: active.accountId,

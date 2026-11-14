@@ -13,6 +13,7 @@ import {
   NEAR_CONTRACT_ID,
   NEAR_FREELANCER_DEFAULT,
   NEAR_VERIFIER_ID,
+  lockDepositNear,
   nearExplorerAccount,
   nearExplorerTx,
   nearToYocto,
@@ -68,7 +69,7 @@ function seedLogs(o: Order, onchainId: string): Log[] {
     base.push({
       who: NEAR_CONTRACT_ID,
       msg: `escrow_target("${onchainId}")`,
-      res: `${o.nearAmount ?? usdToNear(o.amount)} NEAR`,
+      res: `${lockDepositNear(o.nearAmount ?? usdToNear(o.amount))} NEAR`,
       txHash: o.txHashes?.fund,
       kind: "near",
     });
@@ -185,7 +186,14 @@ function OrderDetailInner() {
     return () => { alive = false; clearInterval(t); window.removeEventListener("focus", onFocus); };
   }, [walletConnected]);
 
+  /**
+   * The on-chain/agent telemetry terminal is hidden on the order page: its rows
+   * were seeded demo history (compile_predicates / escrow_target / submit_verification)
+   * and read as if they had really happened. Kept in state so the real run
+   * handlers stay untouched, but nothing fabricated is rendered.
+   */
   const [logs, setLogs] = useState<Log[]>(() => seedLogs(order, onchainId));
+  const [showLogs] = useState(false);
   useEffect(() => { setLogs(seedLogs(order, onchainId)); }, [order, onchainId]);
 
   const [fire, setFire] = useState(0);
@@ -392,7 +400,7 @@ function OrderDetailInner() {
         </div>
       )}
 
-      <div className="od-grid">
+      <div className="od-grid od-grid-single">
         <div className="col" style={{ gap: 20 }}>
           {status === "request" && (
             <RequestPanel
@@ -580,68 +588,6 @@ function OrderDetailInner() {
             <CriteriaList criteria={order.criteria} />
           </div>
         </div>
-
-        {/* Right Telemetry Terminal */}
-        <aside className="col" style={{ gap: 16 }}>
-          <div className="card pad col" style={{ gap: 10 }}>
-            <div className="row between">
-              <span className="kbd">{t("od.contract")}</span>
-              <a href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer" className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>
-                {NEAR_CONTRACT_ID} ↗
-              </a>
-            </div>
-            <div className="kv"><span>{t("od.onchainId")}</span><b className="mono tiny" style={{ color: "var(--mint)" }}>{onchainId}</b></div>
-            <div className="kv"><span>{t("od.escrowAmt")}</span><b className="mono">{money(order.amount)} ({nearDisplay})</b></div>
-            <div className="kv">
-              <span>{t("od.protection")}</span>
-              <b className="mono">
-                {chainEscrow?.exists && chainEscrow.reviewDeadlineNs && Number(chainEscrow.reviewDeadlineNs) > 0
-                  ? t("od.shieldEnds", { when: date(new Date(Number(chainEscrow.reviewDeadlineNs) / 1e6).toISOString(), { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) })
-                  : chainEscrow?.exists
-                  ? t("od.shieldPending")
-                  : t("od.shieldNotFunded")}
-              </b>
-            </div>
-            <div className="kv"><span>{t("od.orinVerifierLabel")}</span><b className="mono tiny" style={{ color: "#fbbf24" }}>{NEAR_VERIFIER_ID}</b></div>
-            {order.termsHash && <div className="kv"><span>{t("od.termsHash")}</span><b className="mono tiny">{order.termsHash.slice(0, 18)}…</b></div>}
-          </div>
-
-          <div className="card pad col" style={{ gap: 10, background: "rgba(5,8,13,0.92)", borderColor: "var(--border-strong)" }}>
-            <div className="row between">
-              <span className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>● {t("od.log")}</span>
-              <span className="mono tiny muted">{logs.length} events</span>
-            </div>
-            <div className="col mono" style={{ gap: 8, maxHeight: 420, overflowY: "auto", fontSize: 11.5 }}>
-              {logs.map((l, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: "9px 11px",
-                    borderRadius: 9,
-                    background: "rgba(255,255,255,.035)",
-                    borderLeft: `2.5px solid ${l.kind === "near" ? "#00ec97" : l.kind === "ai" ? "#f59e0b" : l.kind === "err" ? "#fb7185" : "#38bdf8"}`,
-                  }}
-                >
-                  <div className="row between" style={{ gap: 6 }}>
-                    <span style={{ color: l.kind === "ai" ? "#fbbf24" : "#00ec97", fontWeight: 700 }}>{l.who}</span>
-                    {l.txHash && (
-                      <a
-                        href={nearExplorerTx(l.txHash)}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ color: "#00ec97", fontSize: 10.5, textDecoration: "underline", fontWeight: 700 }}
-                      >
-                        Tx {l.txHash.slice(0, 7)}… ↗
-                      </a>
-                    )}
-                  </div>
-                  <div style={{ marginTop: 2, color: "#e2e8f0" }}>{l.msg}</div>
-                  {l.res && <div style={{ marginTop: 2, color: "#94a3b8" }}>→ {l.res}</div>}
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
       </div>
 
       <Toast show={!!toast}><Icon name="check" size={15} /> {toast}</Toast>
@@ -654,7 +600,8 @@ function OrderDetailInner() {
         .tl-step.done{color:var(--mint);border-color:rgba(0,236,151,0.28);background:rgba(0,236,151,0.06)}
         .tl-step.now{color:#fbbf24;border-color:rgba(245,158,11,0.45);background:rgba(245,158,11,0.1)}
         .tl-dot{width:22px;height:22px;border-radius:6px;border:1px solid currentColor;display:grid;place-items:center;font-size:10.5px;flex:none}
-        .od-grid{display:grid;grid-template-columns:minmax(0,1.46fr) minmax(0,.88fr);gap:20px;align-items:start}
+        /* Telemetry terminal hidden at the user's request → single readable column */
+        .od-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start;max-width:1080px}
         .od-grid > *{min-width:0}
         .bubble{padding:14px 16px;border-radius:12px;border:1px solid var(--border);background:rgba(255,255,255,0.025);line-height:1.6}
         .kv{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--border)}
@@ -707,7 +654,12 @@ function NearDepositPanel({
   const [asset, setAsset] = useState<"NEAR" | "USDC" | "USDT" | "ETH">("NEAR");
   const [quote, setQuote] = useState<{ amountInFormatted: string; nearOut: string; route: string } | null>(null);
   const [busy, setBusy] = useState(false);
-  const nearAmt = order.nearAmount ?? usdToNear(order.amount);
+  /**
+   * One number drives the summary strip, the log line, the receipt and the
+   * actual deposit: whatever the faucet can actually cover (0.05–0.25 NEAR).
+   */
+  const depositNear = lockDepositNear(order.nearAmount ?? usdToNear(order.amount));
+  const nearAmt = depositNear;
 
   useEffect(() => {
     let alive = true;
@@ -749,7 +701,7 @@ function NearDepositPanel({
         log({
           who: walletLabel,
           msg: `sign_transaction("create_and_fund_escrow", "${onchainId}", freelancer="${targetFreelancer}")`,
-          res: "Awaiting wallet signature (0.15 NEAR Testnet stake)…",
+          res: `Awaiting wallet signature (${depositNear} NEAR Testnet stake)…`,
           kind: "near",
         });
         const out = await signNearWalletCall({
@@ -762,7 +714,7 @@ function NearDepositPanel({
             usd_cents: Math.round(order.amount * 100),
             review_window_ns: "60000000000",
           },
-          depositYocto: nearToYocto("0.15"),
+          depositYocto: nearToYocto(String(depositNear)),
           callbackUrl: cbUrl,
         });
         log({
@@ -817,7 +769,7 @@ function NearDepositPanel({
           <h3 style={{ fontSize: 20 }}>{t("pay.waitTitle", { name: order.client.name })}</h3>
           <p className="muted" style={{ fontSize: 13.5, marginTop: 3 }}>
             {walletConnected
-              ? `Sign create_and_fund_escrow directly with ${session.near?.accountId} (0.15 NEAR Testnet stake).`
+              ? `Sign create_and_fund_escrow directly with ${session.near?.accountId} (${depositNear} NEAR Testnet stake).`
               : t("pay.waitBody", { email: order.client.email ?? order.client.nearAccount ?? "client" })}
           </p>
         </div>
@@ -846,7 +798,7 @@ function NearDepositPanel({
 
         {quote && (
           <div className="mono tiny" style={{ padding: "9px 11px", borderRadius: 9, background: "rgba(7,10,15,0.65)", border: "1px solid var(--border)", marginBottom: 12 }}>
-            Pay <b style={{ color: "#fbbf24" }}>{quote.amountInFormatted}</b> → Locks <b style={{ color: "var(--mint)" }}>{quote.nearOut} NEAR</b> ({money(order.amount)}) in <b>{NEAR_CONTRACT_ID}</b><br />
+            Pay <b style={{ color: "#fbbf24" }}>{quote.amountInFormatted}</b> → Locks <b style={{ color: "var(--mint)" }}>{depositNear} NEAR</b> ({money(order.amount)}) in <b>{NEAR_CONTRACT_ID}</b><br />
             <span className="muted">{quote.route}</span>
           </div>
         )}
@@ -856,7 +808,7 @@ function NearDepositPanel({
           {busy
             ? "Broadcasting to NEAR Testnet…"
             : walletConnected
-            ? `Sign & Lock in NEAR Wallet (0.15 NEAR Testnet)`
+            ? `Sign & Lock in NEAR Wallet (${depositNear} NEAR Testnet)`
             : `${t("pay.btn")} · ${nearAmt} NEAR (${money(order.amount)})`}
         </button>
       </div>
@@ -881,7 +833,12 @@ function ReviewPanel({
   const { walletConnected, session } = useMe();
   const [busy, setBusy] = useState<"" | "release" | "timeout">("");
   const [probe, setProbe] = useState<EscrowProbe | null>(null);
-  const nearAmt = order.nearAmount ?? usdToNear(order.amount);
+  /**
+   * One number drives the summary strip, the log line, the receipt and the
+   * actual deposit: whatever the faucet can actually cover (0.05–0.25 NEAR).
+   */
+  const depositNear = lockDepositNear(order.nearAmount ?? usdToNear(order.amount));
+  const nearAmt = depositNear;
 
   useEffect(() => {
     let alive = true;
@@ -1058,7 +1015,12 @@ function SealedCertificatePanel({
   const [saving, setSaving] = useState(false);
   const [stampRun, setStampRun] = useState<number>(slam ? 1 : 0);
   const [shaking, setShaking] = useState<boolean>(slam);
-  const nearAmt = order.nearAmount ?? usdToNear(order.amount);
+  /**
+   * One number drives the summary strip, the log line, the receipt and the
+   * actual deposit: whatever the faucet can actually cover (0.05–0.25 NEAR).
+   */
+  const depositNear = lockDepositNear(order.nearAmount ?? usdToNear(order.amount));
+  const nearAmt = depositNear;
   const isRealTestnetTx = Boolean(txHash && txHash.length >= 40 && !txHash.endsWith("NearTx7x9Q"));
 
   useEffect(() => {

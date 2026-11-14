@@ -73,6 +73,30 @@ export function usdToNear(usd: number, rate = 5.0): number {
   return Math.max(0.01, Math.round((usd / rate) * 100) / 100);
 }
 
+/**
+ * Testnet realities: the NEAR faucet hands out ~1.5 NEAR, so an escrow demo must
+ * fit inside that pocket. Deposits are therefore capped well below the faucet
+ * amount and floored at the contract minimum (0.01 NEAR).
+ */
+export const MY_NEAR_ALLOWANCE = 1.5;
+export const ESCROW_DEPOSIT_MIN = 0.05;
+export const ESCROW_DEPOSIT_MAX = 0.1; // faucet gives 1.5 NEAR → never lock more than a tenth
+
+/** Small, faucet-friendly escrow deposit for a given USD demo amount. */
+export function demoDepositNear(usd: number): number {
+  const raw = Math.round((usd / 1000) * 100) / 100;
+  const clamped = Math.min(ESCROW_DEPOSIT_MAX, Math.max(ESCROW_DEPOSIT_MIN, raw));
+  return Math.round(clamped * 100) / 100;
+}
+
+/** Deposit actually attached when a wallet signs create_and_fund_escrow. */
+export function lockDepositNear(nearAmount: number | string | undefined): number {
+  const n = Number(nearAmount);
+  if (!Number.isFinite(n) || n <= 0) return 0.1;
+  const clamped = Math.min(ESCROW_DEPOSIT_MAX, Math.max(ESCROW_DEPOSIT_MIN, n));
+  return Math.round(clamped * 100) / 100;
+}
+
 export function nearToYocto(nearAmt: number | string): string {
   const [whole = "0", frac = ""] = String(nearAmt).split(".");
   const padded = (frac + "0".repeat(24)).slice(0, 24);

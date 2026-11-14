@@ -6,7 +6,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { type Criterion, type Order } from "@/lib/data";
 import { newOrderId, saveMyOrder } from "@/lib/requests";
-import { usdToNear } from "@/lib/near";
+import { demoDepositNear } from "@/lib/near";
 import { BriefDrafter, CriteriaList } from "@/components/DraftContract";
 import { Confetti, Kicker } from "@/components/ui";
 import { Orin } from "@/components/Orin";
@@ -27,7 +27,7 @@ export default function NewOrderPage() {
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [fire, setFire] = useState(0);
 
-  const nearEst = usdToNear(amount || 0);
+  const nearEst = demoDepositNear(amount || 0);
   const canCreate = clientName.trim().length > 1 && criteria.length > 0 && amount > 0;
 
   const createContract = () => {
@@ -175,7 +175,7 @@ export default function NewOrderPage() {
               maxWidth: 520,
             }}
           >
-            {t("wp.next", { near: String(createdOrder.nearAmount ?? usdToNear(createdOrder.amount)) })}
+            {t("wp.next", { near: String(createdOrder.nearAmount ?? demoDepositNear(createdOrder.amount)) })}
           </div>
           <div className="row wrap" style={{ gap: 10, marginTop: 8 }}>
             <button className="btn lg mint" onClick={() => router.push(`/orders/${createdOrder.id}`)}>

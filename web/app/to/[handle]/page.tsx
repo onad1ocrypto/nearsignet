@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { useI18n } from "@/lib/i18n";
 import { type Criterion } from "@/lib/data";
 import { initialsOf, locationOf, ME_COLOR, SOCIAL_KEYS, useMe, type MeProfile } from "@/lib/me";
-import { usdToNear } from "@/lib/near";
+import { demoDepositNear } from "@/lib/near";
 import { Orin } from "@/components/Orin";
 import { Icon } from "@/components/Icon";
 import { BriefDrafter } from "@/components/DraftContract";
@@ -46,7 +46,7 @@ export default function PublicOrderPage() {
   const [fire, setFire] = useState(0);
 
   const ready = name.trim().length > 1 && /\S+@\S+/.test(email) && criteria.length > 0 && Number(budget) > 0;
-  const nearEst = Number(budget) > 0 ? usdToNear(Number(budget)) : 0;
+  const nearEst = Number(budget) > 0 ? demoDepositNear(Number(budget)) : 0;
 
   const send = async () => {
     if (!ready || sending) return;

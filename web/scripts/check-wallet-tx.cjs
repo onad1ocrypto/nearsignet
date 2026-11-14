@@ -29,7 +29,7 @@ execFileSync(
   { cwd: ROOT, stdio: "pipe" }
 );
 
-const { buildFunctionCallAction } = require(path.join(OUT, "wallet.js"));
+const { buildFunctionCallAction, najFunctionCallAction } = require(path.join(OUT, "wallet.js"));
 
 const checks = [];
 const ok = (name, fn) => {
@@ -71,6 +71,26 @@ ok("near-api-js Action instances are NOT used (they serialise to {})", () => {
   assert.doesNotMatch(code, /transactions\.functionCall\(/, "must not pass near-api-js Action classes to the wallet");
   assert.doesNotMatch(code, /await import\("near-api-js"\)/, "near-api-js actions are no longer needed at signing time");
   assert.match(src, /buildFunctionCallAction/, "must build the selector-native action");
+});
+
+ok("injected wallets (Meteor / Nightly) get a real near-api-js Action, not a plain object", () => {
+  const a = najFunctionCallAction("create_and_fund_escrow", { order_id: "NSG-1" }, gas, deposit);
+  // @near-wallet-selector/core najActionToInternal() switches on these getters:
+  assert.ok(a && typeof a === "object", "must be an object");
+  assert.ok(a.functionCall, "action.functionCall getter must exist — otherwise the selector throws 'Unsupported NAJ action'");
+  assert.equal(a.functionCall.methodName, "create_and_fund_escrow");
+  assert.equal(Buffer.from(a.functionCall.args).toString(), JSON.stringify({ order_id: "NSG-1" }));
+  assert.equal(a.functionCall.gas.toString(), gas);
+  assert.equal(a.functionCall.deposit.toString(), deposit);
+  const jsonish = buildFunctionCallAction("create_and_fund_escrow", { order_id: "NSG-1" }, gas, deposit);
+  assert.equal(jsonish.functionCall, undefined, "plain JSON shape has no getter → that was the bug");
+});
+
+ok("only the injected wallet branch builds NAJ actions", () => {
+  const src = fs.readFileSync(path.join(ROOT, "lib/wallet.ts"), "utf8");
+  assert.match(src, /walletType === "injected"/);
+  assert.match(src, /needsNajActions \? najFunctionCallAction\(/);
+  assert.doesNotMatch(src, /^\s*const \{[^}]*\} = require\("@near-js\/transactions"\);/m, "require must stay lazy");
 });
 
 ok("signing refuses an empty payload before touching the wallet", () => {
