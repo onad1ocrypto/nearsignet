@@ -89,6 +89,25 @@ export function demoDepositNear(usd: number): number {
   return Math.round(clamped * 100) / 100;
 }
 
+/**
+ * Who is looking at this escrow? The payer (client) locks the money and approves
+ * the release; the freelancer does the work. On a funded escrow the payer provably
+ * differs from the freelancer, so a guest is treated as the worker — otherwise the
+ * demo would offer "Deliver work" to the person who just locked the funds.
+ */
+export function viewerRole(
+  escrow: { client?: string } | null | undefined,
+  mySessionAccount: string | undefined,
+  freelancer: string | undefined
+): "client" | "freelancer" {
+  const acct = String(escrow?.client || "").toLowerCase();
+  const mine = String(mySessionAccount || "").toLowerCase();
+  const work = String(freelancer || "").toLowerCase();
+  if (acct && mine && acct === mine) return "client";
+  if (acct && work && acct !== work) return "freelancer";
+  return "client";
+}
+
 /** Deposit actually attached when a wallet signs create_and_fund_escrow. */
 export function lockDepositNear(nearAmount: number | string | undefined): number {
   const n = Number(nearAmount);

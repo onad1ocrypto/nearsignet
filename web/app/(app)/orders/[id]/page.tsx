@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import { useI18n } from "@/lib/i18n";
 import { useMe } from "@/lib/me";
-import { lsGet, lsSet } from "@/lib/safeStorage";
+import { lsGet, lsRemove, lsSet } from "@/lib/safeStorage";
 import { getOrder, ORDERS, type Order, type Status } from "@/lib/data";
 import { loadIncomingById, myOrder, requestAsOrder, saveMyOrder, setRequestStatus } from "@/lib/requests";
 import {
@@ -18,6 +18,7 @@ import {
   nearExplorerTx,
   nearToYocto,
   usdToNear,
+  viewerRole,
 } from "@/lib/near";
 import { signNearWalletCall, walletCapabilities, walletSessionHint } from "@/lib/wallet";
 import { MoneyRail } from "@/components/MoneyRail";
@@ -198,6 +199,7 @@ function OrderDetailInner() {
 
   const [fire, setFire] = useState(0);
   const [toast, setToast] = useState<string | null>(null);
+  const [, setPreviewTick] = useState(0);
   const [justSealed, setJustSealed] = useState(false);
   const [txHash, setTxHash] = useState<string>(order.txHash || order.txHashes?.release || "");
   const [sealCode, setSealCode] = useState<string>(order.sealId || `SEAL-${order.id}-NEAR`);
@@ -261,6 +263,70 @@ function OrderDetailInner() {
   const stageIdx = TIMELINE.findIndex((g) => g.includes(status));
   const tl = [t("tl.agree"), t("tl.fund"), t("tl.work"), t("tl.verify"), t("tl.sealed")];
   const nearDisplay = order.nearAmount ? `${order.nearAmount} NEAR` : nearOf(order.amount);
+  /**
+   * Role of the person in front of this escrow.
+   * - wallet connected  -> read the real escrow: whoever funded it is the client,
+   *   anybody else is the freelancer, so a client is never handed the upload box.
+   * - no wallet (relayer sandbox / judge demo) -> you play both sides, which is the
+   *   whole point of the 1-click sandbox, so the delivery panel stays available.
+   */
+  const sandbox = !walletConnected;
+  const chainRole: "client" | "freelancer" = sandbox
+    ? "freelancer"
+    : viewerRole(chainEscrow, session.near?.accountId, NEAR_FREELANCER_DEFAULT);
+  /**
+   * Per-order preview switch. The chain always knows who really paid, but a judge
+   * demo needs to walk both sides of the same escrow, so this only changes what
+   * THIS browser renders (nothing is signed with it).
+   */
+  const previewRole = lsGet(`nearsignet.viewAs.${order.id}`) as "client" | "freelancer" | null;
+  const role: "client" | "freelancer" = previewRole === "client" || previewRole === "freelancer" ? previewRole : chainRole;
+  const setPreviewRole = (r: "client" | "freelancer" | null) => {
+    if (r) lsSet(`nearsignet.viewAs.${order.id}`, r);
+    else lsRemove(`nearsignet.viewAs.${order.id}`);
+    setPreviewTick((n) => n + 1);
+  };
+  const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
+
+  /**
+   * CLIENT-SIDE ROLE SWITCH FOR A DEMO RUN. A real client can never submit the
+   * freelancer's work, so this only replays what the worker's browser would do
+   * (Orin re-scans the sample set and posts the scoped-key verification), and it
+   * announces itself as a simulation instead of pretending the client did the job.
+   */
+  const handleAdvanceToReview = async () => {
+    setStatus("verifying");
+    const passedCount = order.criteria.length;
+    try {
+      const r = await fetch("/api/near/escrow", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify",
+          orderId: order.id,
+          onchainOrderId: onchainId,
+          amountUsd: order.amount,
+          termsHash: order.termsHash,
+          passedCount,
+          totalCount: order.criteria.length,
+          evidenceHash: "sha256:simulated-worker-delivery",
+        }),
+      });
+      const d = await r.json();
+      log({
+        who: NEAR_VERIFIER_ID,
+        msg: `submit_verification("${onchainId}", ${passedCount}/${order.criteria.length})`,
+        res: `IN_REVIEW · ${d?.txHash ? "Scoped Key Tx ✓" : "relayed ✓"}`,
+        txHash: d?.txHash || undefined,
+        kind: "near",
+      });
+      flash(t("role.simulated"));
+    } catch {
+      flash(t("role.simulated"));
+    }
+    if (isCustom) saveMyOrder({ ...order, status: "review" });
+    setStatus("review");
+  };
 
   return (
     <div className="col" style={{ gap: 20 }}>
@@ -351,6 +417,71 @@ function OrderDetailInner() {
         </div>
       </div>
 
+      {/*
+        ROLE BAR — a client who just locked funds was still being shown "upload your
+        delivery", which is the freelancer's job. On a funded escrow the payer provably
+        differs from the freelancer, so the viewer is the client: no delivery panel, only
+        "waiting for the worker" plus the release button that is actually theirs.
+      */}
+      <div
+        className="row between wrap"
+        style={{
+          padding: "10px 14px",
+          borderRadius: 12,
+          gap: 10,
+          background: role === "client" ? "rgba(56,189,248,0.08)" : "rgba(0,236,151,0.08)",
+          border: `1px solid ${role === "client" ? "rgba(56,189,248,0.38)" : "rgba(0,236,151,0.38)"}`,
+        }}
+      >
+        <div className="row wrap" style={{ gap: 8, fontSize: 12.5 }}>
+          <span className="mono" style={{ fontWeight: 700, color: role === "client" ? "#7dd3fc" : "var(--mint)" }}>
+            ● {(!previewRole && sandbox ? t("role.sandbox") : role === "client" ? t("role.client") : t("role.freelancer")).toUpperCase()}
+          </span>
+          <span className="muted">
+            {previewRole
+              ? role === "client"
+                ? t("role.clientNote")
+                : t("role.freelancerNote")
+              : sandbox
+              ? t("role.sandboxNote")
+              : role === "client"
+              ? t("role.clientNote")
+              : t("role.freelancerNote")}
+          </span>
+        </div>
+        <div className="row wrap" style={{ gap: 6 }}>
+          <button
+            type="button"
+            className={`chip mono ${role === "client" ? "on" : ""}`}
+            style={{ padding: "4px 10px", fontSize: 11.5 }}
+            onClick={() => setPreviewRole("client")}
+            title={t("role.previewTip")}
+          >
+            {t("role.asClient")}
+          </button>
+          <button
+            type="button"
+            className={`chip mono ${role === "freelancer" ? "on" : ""}`}
+            style={{ padding: "4px 10px", fontSize: 11.5 }}
+            onClick={() => setPreviewRole("freelancer")}
+            title={t("role.previewTip")}
+          >
+            {t("role.asFreelancer")}
+          </button>
+          {previewRole && (
+            <button
+              type="button"
+              className="btn sm ghost"
+              onClick={() => setPreviewRole(null)}
+              title={t("role.previewTip")}
+            >
+              <Icon name="refresh" size={12} /> {t("role.auto")}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* NEAR Fiber Settlement Rail */}
       {/* Wallet test path — the two buttons people could not find */}
       <div
         className="card pad"
@@ -385,8 +516,7 @@ function OrderDetailInner() {
         </Link>
       </div>
 
-      {/* NEAR Fiber Settlement Rail */}
-      <MoneyRail order={order} status={status} />
+      <MoneyRail order={order} status={status} role={role} />
 
       {/* 5-Stage Glass Stepper */}
       {status !== "declined" && (
@@ -436,7 +566,35 @@ function OrderDetailInner() {
             />
           )}
 
-          {(status === "in_escrow" || status === "verifying" || status === "revision") && (
+          {(status === "in_escrow" || status === "verifying" || status === "revision") && role === "client" && (
+            <div className="card pad col" style={{ gap: 12, borderColor: "rgba(56,189,248,0.35)", background: "rgba(56,189,248,0.06)" }}>
+              <div className="row between wrap">
+                <div>
+                  <h3 style={{ fontSize: 19 }}>{t("role.waitTitle")}</h3>
+                  <p className="muted" style={{ fontSize: 13.5, marginTop: 3 }}>
+                    {t("role.waitBody", { freelancer: NEAR_FREELANCER_DEFAULT, near: String(depositNearFor(order)) })}
+                  </p>
+                </div>
+                <Orin pose="idle" size={64} />
+              </div>
+              <div className="row wrap" style={{ gap: 8 }}>
+                <a className="btn sm ghost" href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer">
+                  <Icon name="lock" size={13} /> {t("role.viewVault")}
+                </a>
+                {txHash && (
+                  <a className="btn sm ghost" href={nearExplorerTx(txHash)} target="_blank" rel="noreferrer">
+                    <Icon name="check" size={13} /> Tx {txHash.slice(0, 8)}…
+                  </a>
+                )}
+                <button type="button" className="btn sm" onClick={() => void handleAdvanceToReview()}>
+                  <Icon name="refresh" size={13} /> {t("role.simulate")}
+                </button>
+              </div>
+              <div className="tiny muted">{t("role.simulateNote")}</div>
+            </div>
+          )}
+
+          {(status === "in_escrow" || status === "verifying" || status === "revision") && role !== "client" && (
             <DeliveryPanel
               order={order}
               status={status}

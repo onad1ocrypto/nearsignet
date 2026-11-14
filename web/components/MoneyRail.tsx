@@ -13,7 +13,7 @@ export function moneyPos(s: Status): 0 | 1 | 2 {
   return 0;
 }
 
-export function MoneyRail({ order, status }: { order: Order; status: Status }) {
+export function MoneyRail({ order, status, role }: { order: Order; status: Status; role: "client" | "freelancer" }) {
   const { t, money, nearOf } = useI18n();
   const { me } = useMe();
   const pos = moneyPos(status);
@@ -108,7 +108,11 @@ export function MoneyRail({ order, status }: { order: Order; status: Status }) {
           </span>
         </Node>
 
-        <Node i={2} name={me.name.split(" ")[0] + " · " + t("rail.you")} sub={<>{me.nearAccount}</>}>
+        <Node
+          i={2}
+          name={me.name.split(" ")[0] + " · " + t("rail.you")}
+          sub={<>{role === "client" ? t("rail.clientLocks") : me.nearAccount}</>}
+        >
           <Avatar p={{ initials: initialsOf(me.name), color: ME_COLOR }} size={44} photo={me.photo} />
         </Node>
       </div>

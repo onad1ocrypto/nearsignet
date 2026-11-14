@@ -399,12 +399,14 @@ export async function makeSampleVideo(seconds = 6): Promise<File[]> {
 }
 
 export function DeliveryPanel({
-  order, status, setStatus, log, onVerdict,
+  order, status, setStatus, log, onVerdict, viewerIsClient = false,
 }: {
   order: Order;
   status: Status;
   setStatus: (s: Status) => void;
   log: (l: Log) => void;
+  /** A client who funded the escrow must never be offered the worker's upload. */
+  viewerIsClient?: boolean;
   onVerdict?: (v: { measured: number; manual: number; failed: number; evidenceHash?: string }) => void;
 }) {
   const { t } = useI18n();
@@ -534,6 +536,20 @@ export function DeliveryPanel({
         : { i: "upload", t: t("dl.t"), s: t("dl.b"), accent: "#00ec97" };
 
   const measuredCount = facts.filter((f) => f.width || f.durationSec !== undefined || f.text !== undefined).length;
+
+  if (viewerIsClient) {
+    return (
+      <div className="card pad col" style={{ gap: 10, borderColor: "rgba(56,189,248,0.35)", background: "rgba(56,189,248,0.06)" }}>
+        <div className="row" style={{ gap: 10, alignItems: "center" }}>
+          <span style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(56,189,248,0.12)", border: "1px solid rgba(56,189,248,0.45)", color: "#7dd3fc", display: "grid", placeItems: "center", flex: "none" }}>
+            <Icon name="lock" size={17} />
+          </span>
+          <b style={{ fontFamily: "var(--font-display)", fontSize: 16 }}>{t("role.client")}</b>
+        </div>
+        <p className="muted" style={{ fontSize: 13.5 }}>{t("deliver.clientBlocked")}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="card pad" style={{ borderColor: status === "revision" ? "rgba(251,146,60,0.4)" : "var(--border-glow)" }}>
