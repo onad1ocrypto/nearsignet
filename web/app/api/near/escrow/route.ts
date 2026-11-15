@@ -202,6 +202,26 @@ export async function POST(req: Request) {
       }
 
       if (existing) {
+        /**
+         * HONESTY GUARD. submit_verification on a contract escrow that is no longer
+         * PENDING/IN_ESCROW is rejected on chain. Rather than broadcasting a tx that
+         * must fail (a judge reads that as "the app is broken / not my escrow"), we
+         * report the on-chain status and send nothing.
+         */
+        const st = String(existing.status || "").toUpperCase();
+        if (!["PENDING", "IN_ESCROW", "FUNDED", "REVISION_NEEDED", ""].includes(st)) {
+          return NextResponse.json({
+            ok: false,
+            mode: "live",
+            simulated: false,
+            skipped: true,
+            reason: "already-on-chain",
+            onchainOrderId: rawId,
+            chainStatus: st,
+            contractId: NEAR_CONTRACT_ID,
+            message: `Escrow is already ${st} on chain — no submit_verification was sent.`,
+          }, { status: 409 });
+        }
         const effectiveTotal = existing.criteria_count || totalCount;
         const effectivePassed =
           passedCount >= totalCount ? effectiveTotal : Math.min(effectiveTotal - 1, passedCount);

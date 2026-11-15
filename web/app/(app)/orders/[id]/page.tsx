@@ -174,7 +174,7 @@ function OrderDetailInner() {
   }, [id, known, isCustom]);
 
   const { t, money, nearOf, date } = useI18n();
-  const { me, walletConnected, walletId, session, connectWallet } = useMe();
+  const { me, walletConnected, walletId, session, connectWallet, guestAccount, setGuestAccount } = useMe();
   const [status, setStatus] = useState<Status>(order.status);
   useEffect(() => { setStatus(order.status); }, [order]);
 
@@ -356,17 +356,36 @@ function OrderDetailInner() {
    * escrow does not exist on chain yet (a brief that has not been funded).
    */
   const worker = chainEscrow?.freelancer || order.freelancerAccount || freelancerFor(order).accountId;
-  const side = escrowSide(
-    { client: chainEscrow?.client || order.client.nearAccount, freelancer: worker },
-    session.near?.accountId,
-    proven
-  );
-  const sandbox = !session.near;
-  const role: "client" | "freelancer" | "nobody" = sandbox ? "freelancer" : side;
+  const escrowParties = { client: chainEscrow?.client || order.client.nearAccount, freelancer: worker };
+  const side = escrowSide(escrowParties, session.near?.accountId, proven);
+  /**
+   * Three different situations, three different labels. They used to collapse into
+   * one: a Judge Sandbox guest who never named an account was silently declared the
+   * freelancer, and a guest who *did* pick sasam.testnet was still told they play
+   * both sides. That is why "aku login sebagai sasam" contradicted the role bar.
+   *   sandbox  -> no account picked at all: both sides, labelled as a sandbox
+   *   demoMode -> an account is picked but not cryptographically proven yet
+   *   proven   -> roles come from the contract and are enforced
+   */
+  const sandbox = !session.near && !guestAccount;
+  const actingAccount = (session.near?.accountId || guestAccount || "").toLowerCase();
+  const role: "client" | "freelancer" | "nobody" = side;
+  /* A demo claim is judged against the same parties, but it may be stale: NSG-2041 is a
+     shared demo whose worker was later re-picked, so a cached claim can point at someone
+     who is no longer on this escrow. That is the "aku login sebagai sasam, tapi escrow
+     bilang aku bukan sasam" report — so the bar offers a one-click, in-page correction. */
+  const claimedSide = escrowSide(escrowParties, actingAccount, true);
+  const claimStale = !proven && Boolean(actingAccount) && claimedSide === "nobody";
+  const partOptions = [
+    { acct: escrowParties.client || "", key: "client" as const },
+    { acct: escrowParties.freelancer || "", key: "free" as const },
+  ].filter((o) => Boolean(o.acct));
   const demoMode = !proven;
   const canDeliver = demoMode || role === "freelancer";
   const canRelease = demoMode || role === "client";
   const canFund = demoMode || role === "client";
+  /** A demo may not run a write path that would fight the chain (see verify handler). */
+  const chainBusy = Boolean(chainEscrow && ["IN_REVIEW", "SEALED", "REFUNDED", "MEDIATED"].includes(String(chainEscrow.status || "").toUpperCase()));
   const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
 
   /**
@@ -394,14 +413,25 @@ function OrderDetailInner() {
         }),
       });
       const d = await r.json();
-      log({
-        who: NEAR_VERIFIER_ID,
-        msg: `submit_verification("${onchainId}", ${passedCount}/${order.criteria.length})`,
-        res: `IN_REVIEW · ${d?.txHash ? "Scoped Key Tx ✓" : "relayed ✓"}`,
-        txHash: d?.txHash || undefined,
-        kind: "near",
-      });
-      flash(t("role.simulated"));
+      if (d?.txHash) {
+        log({
+          who: NEAR_VERIFIER_ID,
+          msg: `submit_verification("${onchainId}", ${passedCount}/${order.criteria.length})`,
+          res: "IN_REVIEW · Scoped Key Tx ✓",
+          txHash: d.txHash,
+          kind: "near",
+        });
+        flash(t("role.simulated"));
+      } else {
+        /* Nothing was broadcast — say so instead of pretending it landed. */
+        log({
+          who: NEAR_VERIFIER_ID,
+          msg: `submit_verification("${onchainId}", ${passedCount}/${order.criteria.length})`,
+          res: `${d?.chainStatus || "ON-CHAIN"} · no tx sent`,
+          kind: "near",
+        });
+        flash(t("role.chainBusyTitle", { status: String(d?.chainStatus || "").toUpperCase() }));
+      }
     } catch {
       flash(t("role.simulated"));
     }
@@ -517,16 +547,30 @@ function OrderDetailInner() {
       >
         <div className="row wrap" style={{ gap: 8, fontSize: 12.5 }}>
           <span className="mono" style={{ fontWeight: 700, color: role === "client" ? "#7dd3fc" : role === "freelancer" ? "var(--mint)" : "#fb7185" }}>
-            ● {(sandbox ? t("role.sandbox") : role === "client" ? t("role.client") : role === "freelancer" ? t("role.freelancer") : t("role.nobody")).toUpperCase()}
+            ● {(sandbox
+              ? t("role.sandbox")
+              : demoMode
+                ? t("role.demoAs", { acct: actingAccount })
+                : role === "client"
+                  ? t("role.client")
+                  : role === "freelancer"
+                    ? t("role.freelancer")
+                    : t("role.nobody")).toUpperCase()}
           </span>
           <span className="muted">
             {sandbox
               ? t("role.sandboxNote")
-              : role === "client"
-              ? t("role.clientNote")
-              : role === "freelancer"
-              ? t("role.freelancerNote")
-              : t("role.nobodyNote", { freelancer: worker })}
+              : demoMode
+                ? role === "client"
+                  ? t("role.demoClientNote")
+                  : role === "freelancer"
+                    ? t("role.demoFreeNote", { acct: actingAccount, worker })
+                    : t("role.nobodyNote", { freelancer: worker })
+                : role === "client"
+                  ? t("role.clientNote")
+                  : role === "freelancer"
+                    ? t("role.freelancerNote")
+                    : t("role.nobodyNote", { freelancer: worker })}
           </span>
         </div>
         <div className="row wrap" style={{ gap: 6 }}>
@@ -534,13 +578,60 @@ function OrderDetailInner() {
             <span className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }}>
               ✓ {t("role.provenAs", { acct: session.near?.accountId || "" })}
             </span>
-          ) : (
-            <Link href="/signin" className="btn sm mint">
-              <Icon name="wallet" size={13} /> {t("role.proveShort")}
-            </Link>
-          )}
+          ) : null /* the prove / switch links live on the DEMO IDENTITY card below */}
         </div>
       </div>
+
+      {/*
+        DEMO IDENTITY CARD — the fix for "aku login sebagai sasam tapi escrow bilang aku
+        bukan sasam". A sandbox user names their account here, in the escrow they are
+        reading, so no signin round-trip is needed and the return path cannot be lost.
+        "Prove ownership" still goes to /signin with next=<this escrow>, so the wallet
+        signature path returns where it came from.
+      */}
+      {!proven && (
+        <div className="card pad" style={{ padding: "12px 14px", borderColor: "rgba(125,211,252,0.3)", background: "rgba(125,211,252,0.05)" }}>
+          <div className="row between wrap" style={{ gap: 10 }}>
+            <div className="col" style={{ gap: 2 }}>
+              <span className="mono tiny" style={{ color: "#7dd3fc", fontWeight: 700, letterSpacing: ".08em" }}>
+                {t("role.claimTitle").toUpperCase()}
+              </span>
+              <span className="muted" style={{ fontSize: 12 }}>
+                {claimStale ? t("role.claimBanner", { acct: actingAccount }) : t("role.claimSub")}
+              </span>
+            </div>
+            <div className="row wrap" style={{ gap: 6 }}>
+              {partOptions.map((o) => {
+                const active = o.acct.toLowerCase() === actingAccount;
+                return (
+                  <button
+                    key={o.key}
+                    type="button"
+                    className={`btn sm${active ? " mint" : ""}`}
+                    onClick={() => { setGuestAccount(o.acct); flash(t("role.claimNow")); }}
+                    title={o.key === "client" ? t("role.client") : t("role.freelancer")}
+                  >
+                    {active ? "✓ " : ""}{t("role.claimSelf", { acct: o.acct })}
+                  </button>
+                );
+              })}
+              {actingAccount ? (
+                <button type="button" className="btn sm ghost" onClick={() => { setGuestAccount(""); flash(t("role.claimOther")); }}>
+                  {t("role.claimOther")}
+                </button>
+              ) : null}
+              <Link href={`/signin?next=${encodeURIComponent(`/orders/${order.id}`)}`} className="btn sm mint">
+                <Icon name="wallet" size={13} /> {t("role.proveShort")}
+              </Link>
+              {actingAccount ? (
+                <Link href={`/signin?next=${encodeURIComponent(`/orders/${order.id}`)}`} className="btn sm ghost">
+                  {t("role.switchAccount")}
+                </Link>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* NEAR Fiber Settlement Rail */}
       {/* Wallet test path — the two buttons people could not find */}
@@ -699,7 +790,7 @@ function OrderDetailInner() {
             />
           )}
 
-          {(status === "in_escrow" || status === "verifying" || status === "revision") && !canDeliver && (
+          {(status === "in_escrow" || status === "verifying" || status === "revision") && !canDeliver && !chainBusy && (
             <div className="card pad col" style={{ gap: 12, borderColor: "rgba(56,189,248,0.35)", background: "rgba(56,189,248,0.06)" }}>
               <div className="row between wrap">
                 <div>
@@ -727,7 +818,7 @@ function OrderDetailInner() {
             </div>
           )}
 
-          {(status === "in_escrow" || status === "verifying" || status === "revision") && canDeliver && (
+          {(status === "in_escrow" || status === "verifying" || status === "revision") && canDeliver && !chainBusy && (
             <DeliveryPanel
               order={order}
               status={status}
@@ -775,6 +866,37 @@ function OrderDetailInner() {
                   .catch(() => {});
               }}
             />
+          )}
+
+          {/*
+            NEVER PRESENT A BROKEN WRITE. A demo used to be able to press "Run scoped AI
+            verification" on an escrow the chain already had IN_REVIEW, sending the
+            relayer's scoped key into a rejected submit_verification — which a judge reads
+            as "not me / broken". The chain status wins: explain it, then point at the one
+            action that is still valid (release).
+          */}
+          {chainBusy && status !== "review" && status !== "paid" && (
+            <div className="card pad col" style={{ gap: 10, borderColor: "rgba(253,224,71,0.4)", background: "rgba(253,224,71,0.06)" }}>
+              <div className="row between wrap" style={{ gap: 8 }}>
+                <h3 style={{ fontSize: 18 }}>
+                  {t("role.chainBusyTitle", { status: String(chainEscrow?.status || "").toUpperCase() })}
+                </h3>
+                <span className="mono tiny" style={{ color: "#fde047", fontWeight: 700 }}>● ON-CHAIN TRUTH</span>
+              </div>
+              <p className="muted" style={{ fontSize: 13.5 }}>
+                {t("role.chainBusyBody", { status: String(chainEscrow?.status || "").toUpperCase() })}
+              </p>
+              <div className="row wrap" style={{ gap: 8 }}>
+                {canRelease && (
+                  <button type="button" className="btn sm mint" onClick={() => setStatus("review")}>
+                    <Icon name="unlock" size={13} /> {t("role.chainBusyOpen")}
+                  </button>
+                )}
+                <a className="btn sm ghost" href={nearExplorerAccount(NEAR_CONTRACT_ID)} target="_blank" rel="noreferrer">
+                  <Icon name="lock" size={13} /> {t("role.viewVault")}
+                </a>
+              </div>
+            </div>
           )}
 
           {status === "review" && canRelease && (

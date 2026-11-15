@@ -43,6 +43,8 @@ export interface Session {
 
 const PROFILES_KEY = "nearsignet.profiles";
 const GUEST_ACTIVE_KEY = "nearsignet.guest.active";
+/** The account a sandbox guest says they are. Unproven, but it must not be ignored. */
+export const GUEST_ACCOUNT_KEY = "nearsignet.guest.account";
 const keyOf = (id: string) => `${PROFILES_KEY}.${id}`;
 const identityOf = (s: Session) => (s.mode === "near" && s.near ? `near.${s.near.accountId}` : "guest");
 
@@ -93,6 +95,9 @@ interface Ctx {
   proveWalletOwnership: () => Promise<{ ok: boolean; error?: string; accountId?: string }>;
   signInAsGuest: () => Promise<void>;
   startGuest: () => Promise<void>;
+  /** account a sandbox guest claims (unproven), "" when none was picked */
+  guestAccount: string;
+  setGuestAccount: (acct: string) => void;
   signOut: () => Promise<void>;
   justSignedOut: boolean;
   clearJustSignedOut: () => void;
@@ -117,6 +122,16 @@ export function MeProvider({ children }: { children: ReactNode }) {
   const [walletId, setWalletId] = useState<string | null>(null);
   const [sessionReady, setSessionReady] = useState(false);
   const [justSignedOut, setJustSignedOut] = useState(false);
+  const [guestAccount, setGuestAccountState] = useState("");
+  useEffect(() => {
+    const saved = (lsGet(GUEST_ACCOUNT_KEY) || "").toLowerCase();
+    if (saved) setGuestAccountState(saved);
+  }, []);
+  const setGuestAccount = useCallback((acct: string) => {
+    const clean = String(acct || "").trim().toLowerCase();
+    setGuestAccountState(clean);
+    try { lsSet(GUEST_ACCOUNT_KEY, clean); } catch {}
+  }, []);
 
   const connectNearAccount = useCallback(
     async (accountId: string, proof?: LoginProof): Promise<{ ok: boolean; error?: string }> => {
@@ -148,6 +163,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
           return { ok: false, error: j.error || "Could not verify NEAR account" };
         }
         setGuestActive(false);
+        setGuestAccount(accountId.trim().toLowerCase());
         setSession(j.session);
         setMeState(readProfile(j.session));
         return { ok: true };
@@ -301,6 +317,7 @@ export function MeProvider({ children }: { children: ReactNode }) {
     setGuestActive(true);
     setSession({ mode: "guest" });
     setMeState(readProfile({ mode: "guest" }));
+    /* keep whatever account the guest picked: it decides which side of an escrow they see */
   }, []);
 
   const clearJustSignedOut = useCallback(() => setJustSignedOut(false), []);
@@ -326,6 +343,8 @@ export function MeProvider({ children }: { children: ReactNode }) {
       signOut,
       justSignedOut,
       clearJustSignedOut,
+      guestAccount,
+      setGuestAccount,
     }),
     [
       me,

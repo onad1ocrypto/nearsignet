@@ -13,12 +13,14 @@ import { Kicker, LangSwitch, Logo, ThemeSwitch } from "@/components/ui";
 
 function SignInInner() {
   const { t, lang } = useI18n();
-  const { connectWallet, connectNear, proveWalletOwnership, startGuest, session, walletConnected, walletId, sessionReady } = useMe();
+  const { connectWallet, connectNear, proveWalletOwnership, startGuest, session, walletConnected, walletId, sessionReady, setGuestAccount } = useMe();
   const router = useRouter();
   const sp = useSearchParams();
   const next = sp.get("next") || "/dashboard";
 
   const [accountId, setAccountId] = useState("");
+  /** The account this browser claims in the sandbox (no signature yet). */
+  const [claimId, setClaimId] = useState("");
   const [busy, setBusy] = useState<"" | SupportedWalletId | "rpc" | "faucet" | "prove">("");
   const [err, setErr] = useState("");
   const [showRpc, setShowRpc] = useState(false);
@@ -75,6 +77,7 @@ function SignInInner() {
       setErr(res.error || "Wallet signature could not be verified");
       return;
     }
+    if (claimId.trim()) setGuestAccount(claimId.trim().toLowerCase());
     router.push(next);
   };
 
@@ -340,6 +343,18 @@ function SignInInner() {
             <p className="tiny muted" style={{ lineHeight: 1.55 }}>
               {t("role.proveBody")}
             </p>
+            <label className="tiny mono muted" htmlFor="claim-acct" style={{ letterSpacing: ".04em" }}>
+              {t("si.claimLabel")}
+            </label>
+            <input
+              id="claim-acct"
+              className="input mono"
+              value={claimId}
+              onChange={(e) => setClaimId(e.target.value)}
+              onBlur={() => { const c = claimId.trim().toLowerCase(); if (c) setGuestAccount(c); }}
+              placeholder="your-name.testnet"
+            />
+            <span className="tiny muted" style={{ lineHeight: 1.5 }}>{t("si.claimHint")}</span>
             <button
               type="button"
               className="btn mint"
@@ -368,13 +383,24 @@ function SignInInner() {
             <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
           </div>
 
+          {/* Return path: a proof started from an escrow must come back to that escrow. */}
+          {sp.get("next") ? (
+            <div className="mono tiny" style={{ textAlign: "center", marginBottom: 10, color: "var(--mint)" }}>
+              {"→ "}{t("si.returnTo")} <b>{next}</b>
+            </div>
+          ) : null}
+
           {/* 2. 1-CLICK LIVE TESTNET SANDBOX (FUNDED RELAYER -> REAL NEARBLOCKS TXS) */}
           <button
             className="btn lg amber"
             style={{ width: "100%" }}
             disabled={!!busy}
             onClick={async () => {
+              /* Keep the account the user named: the sandbox cannot prove it, but the
+                 escrow should still show *their* account instead of "no wallet". */
+              const claimed = accountId.trim().toLowerCase();
               await startGuest();
+              if (claimed) setGuestAccount(claimed);
               router.push(next);
             }}
           >
