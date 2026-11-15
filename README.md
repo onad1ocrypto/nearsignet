@@ -12,6 +12,11 @@
 
 NearSignet is non-custodial freelance escrow on NEAR where an AI agent does the verification instead of the arguing. A client writes a plain-language brief; the app compiles it into deterministic file checks; the client locks NEAR in an on-chain escrow; the worker uploads into that funded order; the work is measured in the browser (pixel dimensions, background RGB purity, video duration/aspect, WebAudio dBFS loudness, document word count); then the AI agent records an attestation on-chain with a **scoped `FunctionCall` access key** that physically cannot move the escrowed funds.
 
+> **Status window.** Submitted to NEAR HACKATHON; the hosted demo stays up through
+> judging (16–18 Nov 2026) and ideally to 25 Nov. Anything merged after 2026-11-14 is a
+> bug fix in the judged path (identity, proof visibility, a guard against sending a
+> transaction the contract would reject), not a new feature.
+
 ---
 
 ## 1. The problem, and what NEAR does about it
@@ -62,7 +67,10 @@ A client and a freelancer who have never met need to trust each other with $400�
 
 ## 3. Live testnet deployment and on-chain proofs
 
-Everything below is deployed on NEAR testnet (`https://rpc.testnet.near.org`) and public.
+Everything below is deployed on NEAR testnet and public. The `curl` recipes use
+`https://rpc.testnet.fastnear.com` (a public mainnet/testnet RPC that accepts these read
+calls); the legacy `https://rpc.testnet.near.org` host is being retired and can answer
+`-429 Too Many Requests`, which is a rate limit on the host, not a problem with the contract.
 
 | Component | Identifier | Explorer |
 | :--- | :--- | :--- |
@@ -75,12 +83,32 @@ Everything below is deployed on NEAR testnet (`https://rpc.testnet.near.org`) an
 | Tx 2 — `submit_verification` (2/2 rules + SHA-256) | `48zAoThDXD31LpRYYFdXY62HVJ39sNgTJGxg3QUJQttn` | [View ↗](https://testnet.nearblocks.io/txns/48zAoThDXD31LpRYYFdXY62HVJ39sNgTJGxg3QUJQttn) |
 | Tx 3 — `approve_and_release` (`SEAL-NSG-2033-597675`) | `6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a` | [View ↗](https://testnet.nearblocks.io/txns/6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a) |
 
+NearBlocks sits behind a bot filter, so a scripted check can get `403` on those links
+while they load fine in a browser. Verify straight from the chain instead — every hash
+above resolves through the public RPC:
+
+```bash
+for h in DfkegmyKGXutnFByGXThmJSsdemovXTZA1C33M2oofG5 \
+         5VpVFYx1eoPaup6F542eNy7vi6gvqaGsZf1Vobw4ZkQE \
+         7NYp3vQ7qthVy9YHsr75wut3m3zvAUTVyLzDyjkWm3tm \
+         EquEciRe5UtZgmCXyksqmnyL3br4rNeK1YUE31fYWkAX \
+         48zAoThDXD31LpRYYFdXY62HVJ39sNgTJGxg3QUJQttn \
+         6x8XGr4pb8AzDFFFuo7DVYGzfoGts5GxTsVc7qA13x5a; do
+  curl -s https://rpc.testnet.fastnear.com -H 'Content-Type: application/json' \
+    -d "{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"tx\",\"params\":{\"tx_hash\":\"$h\",\"sender_account_id\":\"nearsignet-protocol.testnet\",\"wait_until\":\"FINAL\"}}" \
+  | grep -o '"SuccessValue"' | head -1 | sed "s|^|$h |"
+done
+```
+
+Expected (checked on 2026-11-15): `DeployContract`, `init`, `AddKey`,
+`create_and_fund_escrow`, `submit_verification`, `approve_and_release` — all `SuccessValue`.
+
 ### Check the on-chain state yourself (curl, nothing to install)
 
 1. **Do** — list the verifier's access keys:
 
    ```bash
-   curl -s https://rpc.testnet.near.org \
+   curl -s https://rpc.testnet.fastnear.com \
      -H "Content-Type: application/json" \
      -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"view_access_key_list","finality":"final","account_id":"verifier.nearsignet-protocol.testnet"}}'
    ```
@@ -90,7 +118,7 @@ Everything below is deployed on NEAR testnet (`https://rpc.testnet.near.org`) an
 2. **Do** — read the settled escrow `NSG-2033`:
 
    ```bash
-   curl -s https://rpc.testnet.near.org \
+   curl -s https://rpc.testnet.fastnear.com \
      -H "Content-Type: application/json" \
      -d '{"jsonrpc":"2.0","id":"1","method":"query","params":{"request_type":"call_function","finality":"final","account_id":"nearsignet-protocol.testnet","method_name":"get_escrow","args_base64":"eyJvcmRlcl9pZCI6Ik5TRy0yMDMzIn0="}}'
    ```
@@ -105,11 +133,14 @@ Everything below is deployed on NEAR testnet (`https://rpc.testnet.near.org`) an
 
 1. **Do** — open **[nearsignet.vercel.app](https://nearsignet.vercel.app)**, skip the intro, click **Open App**. On `/signin`, either connect **Meteor Wallet (set the network to Testnet)**, **Intear** or **HOT Wallet**, or click **Launch Judge Sandbox** to use the live testnet relayer.
    **See** — `/dashboard` with live telemetry read from `nearsignet-protocol.testnet`.
-2. **Do** — open the sandbox order **`/orders/REQ-DEMOX1`** and click **Accept Terms**.
+2. **Do** — open a draft brief you create yourself with **Create escrow** (or the seeded sample order), click **Accept Terms**.
    **See** — the brief compiled into the predicate list, and an amber **Fund Escrow Vault** button that locks 0.1 NEAR.
-3. **Do** — open **`/orders/NSG-2041`**, scroll to the funded vault, click **Clean Set (20×2400px White)**, then **Run Scoped AI Verification**.
-   **See** — 20 JPEGs measured in-browser (`Exact: 20 files`, `JPEG format`, `Min. 2000px long edge`, `Pure white background`), then *All Predicates Verified* with the scoped-key attestation and a clickable **Tx ↗** NearBlocks link.
-4. **Do** — open the settled order **`/orders/NSG-2033`**.
+3. **Do** — open **`/orders/NSG-2041`** (in the Judge Sandbox), scroll to the funded vault, click **Clean Set (20×2400px White)**, then **Run Scoped AI Verification**.
+   **See** — 20 JPEGs measured in-browser (`Exact: 20 files`, `JPEG format`, `Min. 2000px long edge`, `Pure white background`). The sample set takes ~60–90 s to render. The page then shows *All Predicates Verified* and the **On-chain proof** card lists the `submit_verification` tx with a clickable NearBlocks link.
+   The card always shows the escrow the write went to; a preset that is already settled is not re-verified — the app refuses and says so instead of sending a transaction the contract would reject.
+4. **Do** — on the same page press **Approve as Liam & Release NEAR**.
+   **See** — `SEALED`, a seal id, the `approve_and_release` tx in the proof card, and the downloadable certificate.
+5. **Do** — open the settled order **`/orders/NSG-2033`** to see an older settlement already on chain.
    **See** — the `SEALED` certificate for 0.08 NEAR with seal id, release tx and **Download PNG**.
 
 ### B. Local, with the full test suite
@@ -126,7 +157,7 @@ Current results on this commit:
 | Suite | Command | Result |
 | :--- | :--- | :--- |
 | Contract & AI key firewall | `npm run test:contract` | **14/14** assertions — compiled WASM, `0 FullAccess` invariant, 72h timeout, proportional mediation |
-| Trilingual parity | `npm run test:i18n` | **721 keys, 0 missing** (EN / 中文 / ID) |
+| Trilingual parity | `npm run test:i18n` | **744 keys, 0 missing** (EN / 中文 / ID) |
 | Media rule engine | `npm run test:media` | pixel, PNG alpha, video duration, dBFS audio and "audio present" assertions pass |
 | Live testnet RPC | `npm run test:rpc` | contract deployed, `NSG-2033` settled, verifier key scoped, `0 FullAccess` |
 | Orin chat grounding | `node web/scripts/check-orin.cjs` | **9/9** |
@@ -180,7 +211,7 @@ nearsignet/
 │   ├── scripts/deploy-testnet.mjs       # secret-free reproducible deploy + scoped-key setup
 │   └── tests/escrow.test.mjs            # contract & AI key-firewall assertions
 └── web/                                 # Next.js app
-    ├── app/                             # App Router pages + 14 API routes
+    ├── app/                             # App Router pages + API routes (agent, auth, near, profile, profiles, requests)
     ├── components/                      # DeliveryPanel, SealedCertificatePanel, SignetSeal, Orin, CinematicIntro…
     ├── lib/                             # wallet selector, NEAR RPC client, media verifier, trilingual dictionary
     ├── scripts/                         # i18n, media, live-RPC, Orin, wallet and NEP-413 checks
