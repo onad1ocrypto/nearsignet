@@ -69,11 +69,14 @@ async function waitForEscrow(orderId: string, attempts = 8, gapMs = 700) {
  * that *start with* the requested preset, so one order id can never leak another
  * order's escrow.
  *
- * Pick order: newest escrow that is still ACTIVE (a judge can then still deliver,
- * verify and release), otherwise the newest one at all (a settled escrow still
- * proves the flow happened).
+ * Pick order, so a judge always lands on something they can still act on:
+ *   1. IN_ESCROW      — funded, not yet verified: the whole scoped-key verify runs live
+ *   2. IN_REVIEW      — verified 4/4: the release step is the one that is still valid
+ *   3. REVISION_NEEDED / PENDING
+ *   4. anything else  — a settled escrow still proves the flow happened
+ * Ties go to the newest escrow.
  */
-const ACTIVE_STATUSES = ["PENDING", "IN_ESCROW", "IN_REVIEW", "REVISION_NEEDED", "FUNDED"];
+const PICK_ORDER = ["IN_ESCROW", "IN_REVIEW", "REVISION_NEEDED", "PENDING", "FUNDED"];
 async function findPresetEscrow(presetId: string) {
   const clean = presetId.trim();
   if (!clean || clean.length > 32) return null;
@@ -92,10 +95,17 @@ async function findPresetEscrow(presetId: string) {
       if (list.length < 50) break;
     }
     if (!matches.length) return null;
-    const newest = (a: ChainEscrowRecord, b: ChainEscrowRecord) =>
-      BigInt(b.created_at_ns || "0") > BigInt(a.created_at_ns || "0") ? b : a;
-    const active = matches.filter((m) => ACTIVE_STATUSES.includes(String(m.status || "").toUpperCase()));
-    const chosen = (active.length ? active : matches).reduce(newest);
+    const rank = (r: ChainEscrowRecord) => {
+      const i = PICK_ORDER.indexOf(String(r.status || "").toUpperCase());
+      return i === -1 ? PICK_ORDER.length : i;
+    };
+    const chosen = [...matches].sort((a, b) => {
+      const d = rank(a) - rank(b);
+      if (d !== 0) return d;
+      const ta = BigInt(a.created_at_ns || "0");
+      const tb = BigInt(b.created_at_ns || "0");
+      return tb > ta ? 1 : tb < ta ? -1 : 0;
+    })[0];
     return await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: chosen.order_id }, NEAR_CONTRACT_ID);
   } catch {
     return null;

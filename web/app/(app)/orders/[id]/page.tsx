@@ -898,6 +898,22 @@ function OrderDetailInner() {
             as "not me / broken". The chain status wins: explain it, then point at the one
             action that is still valid (release).
           */}
+          {/*
+            A guest has no wallet, so "Sign & Lock" can never resolve for them. The
+            escrow that already exists on chain is the one to settle — say that plainly
+            instead of leaving a dead button.
+          */}
+          {!proven && chainEscrow?.exists && !chainBusy && status !== "paid" && (
+            <div className="card pad col" style={{ gap: 8, borderColor: "rgba(125,211,252,0.35)", background: "rgba(125,211,252,0.05)" }}>
+              <span className="mono tiny" style={{ color: "#7dd3fc", fontWeight: 700, letterSpacing: ".08em" }}>
+                {t("demo.resumeTitle").toUpperCase()}
+              </span>
+              <p className="muted" style={{ fontSize: 13.5 }}>
+                {t("demo.resumeBody", { id: chainOrderId, status: String(chainEscrow.status || "").toUpperCase() })}
+              </p>
+            </div>
+          )}
+
           {chainBusy && status !== "review" && status !== "paid" && (
             <div className="card pad col" style={{ gap: 10, borderColor: "rgba(253,224,71,0.4)", background: "rgba(253,224,71,0.06)" }}>
               <div className="row between wrap" style={{ gap: 8 }}>
