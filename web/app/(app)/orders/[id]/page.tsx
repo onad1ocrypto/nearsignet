@@ -742,6 +742,9 @@ function OrderDetailInner() {
             <span className="mono tiny" style={{ fontWeight: 700, color: "var(--mint)" }}>
               {String(chainEscrow.status || "").toUpperCase()}
             </span>
+            {proven && actingAccount && role !== "nobody" && (
+              <span className="mono tiny" style={{ color: "var(--mint)" }}>✓ signed as {actingAccount}</span>
+            )}
             <span className="mono tiny muted">{chainEscrow.orderId}</span>
             {chainEscrow.amountNear ? <span className="mono tiny muted">{chainEscrow.amountNear} NEAR</span> : null}
             {chainEscrow.client ? <span className="mono tiny muted">client: {chainEscrow.client}</span> : null}
