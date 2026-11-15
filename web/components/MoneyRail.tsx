@@ -13,7 +13,7 @@ export function moneyPos(s: Status): 0 | 1 | 2 {
   return 0;
 }
 
-export function MoneyRail({ order, status, role }: { order: Order; status: Status; role: "client" | "freelancer" }) {
+export function MoneyRail({ order, status, role, chainNear, chainWorker }: { order: Order; status: Status; role: "client" | "freelancer"; chainNear?: string; chainWorker?: string }) {
   const { t, money, nearOf } = useI18n();
   const { me, session } = useMe();
   /**
@@ -21,19 +21,20 @@ export function MoneyRail({ order, status, role }: { order: Order; status: Statu
    * worker is one account, receiving is the other, and the viewer is labelled
    * "you" only when the session is actually proven to be that account.
    */
-  const clientAcct = order.client.nearAccount || order.client.nearAccount || "client.testnet";
-  const workerAcct = order.freelancerAccount || me.nearAccount;
+  const clientAcct = order.client.nearAccount || "client.testnet";
+  /** The escrow on-chain names the real payer and payee; prefer it over the fixture. */
+  const workerAcct = chainWorker || order.freelancerAccount || me.nearAccount;
   const viewerAcct = session.near?.accountId?.toLowerCase();
   const isClientViewer = Boolean(viewerAcct && viewerAcct === clientAcct.toLowerCase());
   const isWorkerViewer = Boolean(viewerAcct && viewerAcct === workerAcct.toLowerCase());
   const pos = moneyPos(status);
   const funded = pos > 0;
   const coinLeft = ["16.66%", "50%", "83.33%"][pos];
-  const nearText = order.nearAmount ? `${order.nearAmount} NEAR` : nearOf(order.amount);
+  const nearText = chainNear ? `${chainNear} NEAR` : order.nearAmount ? `${order.nearAmount} NEAR` : nearOf(order.amount);
 
   const statusText =
     status === "paid"
-      ? t("rail.paid", { amount: money(order.amount), near: nearText, acct: me.nearAccount })
+      ? t("rail.paid", { amount: money(order.amount), near: nearText, acct: workerAcct })
       : funded
         ? t("rail.held", { amount: money(order.amount), near: nearText })
         : status === "declined"

@@ -206,14 +206,15 @@ export default function InsightsPage() {
         <div className="card pad col" style={{ gap: 14 }}>
           <div>
             <span className="kbd">{(t("od.corridors") || "").toUpperCase()}</span>
-            <h3 style={{ fontSize: 19, marginTop: 3 }}>{t("od.zeroWire")}</h3>
+            <h3 style={{ fontSize: 19, marginTop: 3 }}>{t("settle.byClient")}</h3>
           </div>
 
           <div className="col" style={{ gap: 13 }}>
+            {corridors.length === 0 && <span className="muted tiny">{loading ? "…" : t("settle.noEscrows")}</span>}
             {corridors.map((c) => (
               <div key={c.pair} className="col" style={{ gap: 5 }}>
                 <div className="row between tiny" style={{ fontWeight: 600 }}>
-                  <span>{c.pair}</span>
+                  <span className="mono">{c.pair}</span>
                   <span className="mono muted">{c.near} ({c.pct}%)</span>
                 </div>
                 <div style={{ height: 9, borderRadius: 999, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
@@ -228,7 +229,11 @@ export default function InsightsPage() {
               <div className="kbd" style={{ color: "#fbbf24" }}>{(t("od.feeSavings") || "").toUpperCase()}</div>
               <span style={{ fontSize: 13.5, fontWeight: 600 }}>{t("od.gasCompare")}</span>
             </div>
-            <b className="display" style={{ fontSize: 22, color: "#fbbf24" }}>{t("od.saved", { amount: "$748" })}</b>
+            <b className="display" style={{ fontSize: 22, color: "#fbbf24" }}>
+              {t("od.saved", {
+                amount: money(Math.round(((liveVolumeNear ?? 0) * NEAR_USD_RATE) * 0.064)),
+              })}
+            </b>
           </div>
         </div>
       </div>

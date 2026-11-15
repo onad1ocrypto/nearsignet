@@ -577,7 +577,13 @@ function OrderDetailInner() {
         </Link>
       </div>
 
-      <MoneyRail order={order} status={status} role={role === "client" ? "client" : "freelancer"} />
+      <MoneyRail
+        order={order}
+        status={status}
+        role={role === "client" ? "client" : "freelancer"}
+        chainNear={chainEscrow?.amountNear}
+        chainWorker={chainEscrow?.freelancer}
+      />
 
       {/* 5-Stage Glass Stepper */}
       {status !== "declined" && (
@@ -602,6 +608,7 @@ function OrderDetailInner() {
               sealCode={sealCode}
               mediationSplit={mediationSplit}
               chainNear={chainEscrow?.amountNear}
+              chainWorker={chainEscrow?.freelancer}
             />
           )}
 
@@ -1278,7 +1285,7 @@ function ReviewPanel({
 }
 
 function SealedCertificatePanel({
-  order, slam, txHash, sealCode, mediationSplit, chainNear,
+  order, slam, txHash, sealCode, mediationSplit, chainNear, chainWorker,
 }: {
   order: Order;
   slam: boolean;
@@ -1286,6 +1293,7 @@ function SealedCertificatePanel({
   sealCode: string;
   mediationSplit: { percent: number; txHash: string; live: boolean } | null;
   chainNear?: string;
+  chainWorker?: string;
 }) {
   const { t, money } = useI18n();
   const { me } = useMe();
@@ -1301,7 +1309,7 @@ function SealedCertificatePanel({
   /** A sealed escrow exists on-chain: the receipt shows what the contract actually paid. */
   const nearAmt = chainNear ?? depositNear;
   /** Who actually received the payout: the escrow's worker, not the viewer. */
-  const workerForSeal = order.freelancerAccount || freelancerFor(order).accountId;
+  const workerForSeal = chainWorker || order.freelancerAccount || freelancerFor(order).accountId;
   const isRealTestnetTx = Boolean(txHash && txHash.length >= 40 && !txHash.endsWith("NearTx7x9Q"));
 
   useEffect(() => {
