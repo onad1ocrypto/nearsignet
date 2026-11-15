@@ -46,6 +46,21 @@ interface ChainEscrowRecord {
  * and what is its status? Used by the UI before asking a wallet to sign, because
  * wallets display nothing at all for a transaction that will fail an `assert`.
  */
+/**
+ * Read-after-write is not instant: right after `create_and_fund_escrow` the RPC
+ * node answering `get_escrow` may still be a block behind, which used to make the
+ * verify path conclude "no escrow" and answer `offline-local` even though the fund
+ * had just landed. Poll until the escrow is visible.
+ */
+async function waitForEscrow(orderId: string, attempts = 8, gapMs = 700) {
+  for (let i = 0; i < attempts; i++) {
+    const rec = await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: orderId });
+    if (rec) return rec;
+    await new Promise((r) => setTimeout(r, gapMs));
+  }
+  return null;
+}
+
 export async function GET(req: Request) {
   const orderId = new URL(req.url).searchParams.get("orderId") ?? "";
   if (!orderId || orderId.length > 64) {
@@ -183,7 +198,7 @@ export async function POST(req: Request) {
           attachedDepositYocto: sandboxStakeYocto,
         });
         fundTxHash = fundOut.txHash;
-        existing = await nearCallView<ChainEscrowRecord>("get_escrow", { order_id: rawId });
+        existing = await waitForEscrow(rawId);
       }
 
       if (existing) {
@@ -308,7 +323,7 @@ export async function POST(req: Request) {
           },
           attachedDepositYocto: sandboxStakeYocto,
         });
-        existing = await nearCallView<ChainEscrowRecord>("get_escrow", { order_id: rawId });
+        existing = await waitForEscrow(rawId);
       }
 
       if (existing) {
