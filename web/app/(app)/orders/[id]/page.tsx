@@ -992,7 +992,7 @@ function OrderDetailInner() {
           {status === "review" && canRelease && (
             <ReviewPanel
               order={order}
-              onchainId={onchainId}
+              onchainId={chainOrderId}
               log={log}
               verdict={verdict}
               onReleased={(hash, seal) => {
@@ -1009,7 +1009,7 @@ function OrderDetailInner() {
           {(status === "review" || status === "paid") && (
             <MediatorPanel
               order={order}
-              onchainId={onchainId}
+              onchainId={chainOrderId}
               log={log}
               onSettled={(info) => {
                 setMediationSplit(info);
