@@ -200,6 +200,16 @@ function OrderDetailInner() {
     return () => { alive = false; clearInterval(t); };
   }, [onchainId, status, id, order.id]);
 
+  /**
+   * The contract is the truth: if it says the escrow is already IN_REVIEW, the page must
+   * show the release step directly. Otherwise a judge who reloads sees a demo-status
+   * "in escrow" page and has to find a second click to reach the action that is valid.
+   */
+  useEffect(() => {
+    const st = String(chainEscrow?.status || "").toUpperCase();
+    if (st === "IN_REVIEW" && status === "in_escrow") setStatus("review");
+  }, [chainEscrow?.status, status]);
+
   const [walletHealth, setWalletHealth] = useState<{ walletId: string | null; canSign: boolean; hasSession: boolean } | null>(null);
   useEffect(() => {
     let alive = true;
