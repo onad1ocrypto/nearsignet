@@ -209,6 +209,23 @@ Everything in this repository — the `NearSignetEscrow` contract, the testnet d
 | NEAR Intents 1-Click API | Cross-chain quote preview | public API |
 | NEAR AI Cloud (`cloud-api.near.ai`) | TEE-backed LLM for the Contract and Mediator agents | NEAR AI Cloud |
 
-## 8. Licence
+## 8. Known limits (stated honestly)
+
+- **Public profile pages do not survive a server restart.** `/to/[handle]` reads from an
+  in-memory store (`web/lib/store.ts`). Unless `SUPABASE_URL` + `SUPABASE_SERVICE_KEY`
+  are set, a published handle stays reachable for the lifetime of the serverless
+  instance, then falls back to the visitor's own profile. Nothing else in the app
+  depends on that store: escrows, verdicts, seals and every money path live on NEAR.
+- **Ownership proof needs a browser wallet.** A sandbox visitor can *claim* an account
+  (shown as `DEMO · ACTING AS <account> (UNPROVEN)`); only a NEP-413 signature from
+  Meteor/Nightly produces a proven session, and the escrow bar says which one you have.
+- **One preset order id can only be funded once.** The presets (`NSG-2033`, `NSG-2041`)
+  point at real escrows on `nearsignet-protocol.testnet`; a fresh browser continues the
+  newest unsettled one instead of creating another. Use "1 · New On-Chain Run" for a
+  brand-new escrow.
+- **Testnet only.** No mainnet contract is deployed; the payout account for a real
+  settlement is whatever wallet signs `approve_and_release`.
+
+## 9. Licence
 
 **[MIT](./LICENSE)** — `SPDX-License-Identifier: MIT`.
