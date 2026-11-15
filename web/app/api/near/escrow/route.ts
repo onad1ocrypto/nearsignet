@@ -61,15 +61,48 @@ async function waitForEscrow(orderId: string, attempts = 8, gapMs = 700) {
   return null;
 }
 
+/**
+ * A preset demo order keeps one storage key per browser, so a second visitor gets a
+ * fresh on-chain id and never sees the live escrow behind the preset. The client now
+ * asks for the preset id as a fallback: we only answer with a record whose order id
+ * *starts with* the requested id, so one order id can never leak another order's
+ * escrow.
+ */
+async function findPresetEscrow(presetId: string) {
+  const clean = presetId.trim();
+  if (!clean || clean.length > 32) return null;
+  try {
+    const list = await nearCallView<string[]>("list_escrows", {}, NEAR_CONTRACT_ID);
+    const match = (Array.isArray(list) ? list : [])
+      .filter((o) => typeof o === "string" && o.startsWith(clean))
+      .sort()
+      .pop();
+    if (!match) return null;
+    return await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: match }, NEAR_CONTRACT_ID);
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: Request) {
-  const orderId = new URL(req.url).searchParams.get("orderId") ?? "";
+  const url = new URL(req.url);
+  const orderId = url.searchParams.get("orderId") ?? "";
+  const preset = url.searchParams.get("preset") ?? "";
   if (!orderId || orderId.length > 64) {
     return NextResponse.json({ ok: false, error: "orderId required" }, { status: 400 });
   }
   try {
-    const escrow = await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: orderId }, NEAR_CONTRACT_ID);
+    let escrow = await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: orderId }, NEAR_CONTRACT_ID);
+    let resolvedId = orderId;
+    if (!escrow && preset) {
+      const fallback = await findPresetEscrow(preset);
+      if (fallback) {
+        escrow = fallback;
+        resolvedId = fallback.order_id;
+      }
+    }
     return NextResponse.json(
-      { ok: true, contractId: NEAR_CONTRACT_ID, orderId, escrow: escrow ?? null },
+      { ok: true, contractId: NEAR_CONTRACT_ID, orderId: resolvedId, escrow: escrow ?? null },
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (e) {

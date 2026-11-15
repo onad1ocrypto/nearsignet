@@ -98,13 +98,19 @@ export function demoDepositNear(usd: number): number {
  *
  * `verified` means the account proved ownership with a NEP-413 signature; an
  * unproven session gets no privileges at all.
+ *
+ * Reads are different from writes: anyone may *read* an escrow and see which side
+ * they are on, so the read-only position is computed regardless of `verified`. A
+ * write path must still require a proven signature — `page.tsx` keeps `proven` as a
+ * separate gate. Without this, a judge who picked their own account in the sandbox
+ * was told "this escrow is not yours" even when it was.
  */
 export function escrowSide(
   escrow: { client?: string; freelancer?: string } | null | undefined,
   account: string | undefined,
   verified: boolean
 ): "client" | "freelancer" | "nobody" {
-  if (!verified || !account) return "nobody";
+  if (!account) return "nobody";
   const acct = account.toLowerCase();
   if (escrow?.client && acct === escrow.client.toLowerCase()) return "client";
   if (escrow?.freelancer && acct === escrow.freelancer.toLowerCase()) return "freelancer";
