@@ -68,9 +68,9 @@ A client and a freelancer who have never met need to trust each other with $400�
 ## 3. Live testnet deployment and on-chain proofs
 
 Everything below is deployed on NEAR testnet and public. The `curl` recipes use
-`https://rpc.testnet.fastnear.com` (a public mainnet/testnet RPC that accepts these read
-calls); the legacy `https://rpc.testnet.near.org` host is being retired and can answer
-`-429 Too Many Requests`, which is a rate limit on the host, not a problem with the contract.
+`https://rpc.testnet.fastnear.com` (a public RPC that accepts these read calls). The
+legacy `https://rpc.testnet.near.org` host is being retired and can answer
+`-429 Too Many Requests`; that is a rate limit on the host, not a fault in the contract.
 
 | Component | Identifier | Explorer |
 | :--- | :--- | :--- |
@@ -131,17 +131,22 @@ Expected (checked on 2026-11-15): `DeployContract`, `init`, `AddKey`,
 
 ### A. Hosted app (2 minutes, no install)
 
-1. **Do** — open **[nearsignet.vercel.app](https://nearsignet.vercel.app)**, skip the intro, click **Open App**. On `/signin`, either connect **Meteor Wallet (set the network to Testnet)**, **Intear** or **HOT Wallet**, or click **Launch Judge Sandbox** to use the live testnet relayer.
-   **See** — `/dashboard` with live telemetry read from `nearsignet-protocol.testnet`.
-2. **Do** — open a draft brief you create yourself with **Create escrow** (or the seeded sample order), click **Accept Terms**.
-   **See** — the brief compiled into the predicate list, and an amber **Fund Escrow Vault** button that locks 0.1 NEAR.
-3. **Do** — open **`/orders/NSG-2041`** (in the Judge Sandbox), scroll to the funded vault, click **Clean Set (20×2400px White)**, then **Run Scoped AI Verification**.
-   **See** — 20 JPEGs measured in-browser (`Exact: 20 files`, `JPEG format`, `Min. 2000px long edge`, `Pure white background`). The sample set takes ~60–90 s to render. The page then shows *All Predicates Verified* and the **On-chain proof** card lists the `submit_verification` tx with a clickable NearBlocks link.
-   The card always shows the escrow the write went to; a preset that is already settled is not re-verified — the app refuses and says so instead of sending a transaction the contract would reject.
-4. **Do** — on the same page press **Approve as Liam & Release NEAR**.
-   **See** — `SEALED`, a seal id, the `approve_and_release` tx in the proof card, and the downloadable certificate.
-5. **Do** — open the settled order **`/orders/NSG-2033`** to see an older settlement already on chain.
-   **See** — the `SEALED` certificate for 0.08 NEAR with seal id, release tx and **Download PNG**.
+Every `/orders/*` page needs a session, so step 1 is the only gate. The **Judge Sandbox**
+needs no wallet and no extension.
+
+1. **Do** — open **[nearsignet.vercel.app](https://nearsignet.vercel.app)**, skip the intro, click **Open App**, then on `/signin` click **Launch Judge Sandbox** (the amber button). Optionally type your own `.testnet` account in the claim field first.
+   **See** — `/dashboard` with telemetry read live from `nearsignet-protocol.testnet`, and the escrow pages now open.
+2. **Do** — open **`/orders/NSG-2041`**, scroll to the funded vault, click **Clean Set (20×2400px White)**, then **Run Scoped AI Verification**.
+   **See** — 20 JPEGs measured in-browser (`Exact: 20 files`, `JPEG format`, `Min. 2000px long edge`, `Pure white background`); the sample set takes ~60–90 s to render. Then *All Predicates Verified*, and the **On-chain proof** card lists the `submit_verification` tx with a clickable explorer link. The card names the account you claimed (`DEMO · ACTING AS <account> (UNPROVEN)`) — a claim, not a signature, and the page never pretends otherwise.
+3. **Do** — press **Approve as Liam & Release NEAR** on the same page.
+   **See** — `SEALED`, a seal id, the `approve_and_release` tx in the proof card, and a downloadable certificate.
+   The app refuses (with an explanation, no transaction) to re-verify an escrow the contract already holds in `IN_REVIEW`/`SEALED`, and the proof card always shows the escrow the write actually went to.
+4. **Do** — open **`/orders/NSG-2033`** for a settlement that is already on chain.
+   **See** — the `SEALED` certificate with seal id `SEAL-NSG-2033-597675` and its release tx.
+
+The two preset orders are shared across visitors: a fresh browser continues the newest
+escrow that is still unsettled for that preset instead of creating another, and
+**1 · New On-Chain Run** mints a brand-new escrow for the same brief.
 
 ### B. Local, with the full test suite
 
