@@ -15,6 +15,7 @@
     "test:i18n": "npm --prefix web run test:i18n",
     "test:media": "npm --prefix web run test:media",
     "test:rpc": "npm --prefix web run test:rpc",
-    "test": "npm run test:contract && npm run test:i18n && npm run test:media && npm run test:rpc"
+    "test": "npm run test:contract && npm run test:i18n && npm run test:media && npm run test:rpc",
+    "verify:onchain": "node scripts/verify-onchain.mjs"
   }
 }

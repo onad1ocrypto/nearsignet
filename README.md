@@ -108,6 +108,42 @@ README — `DeployContract`, `init`, `AddKey`, `create_and_fund_escrow`,
 `submit_verification`, `approve_and_release`, each `SuccessValue`. The loop that does it
 is in the next section, so the claim is reproducible instead of asserted.
 
+### Reproducibility in 60 seconds (nothing to install, no keys)
+
+Three commands reproduce every claim in this README. The first needs no `npm install`
+at all — only Node 18+:
+
+```bash
+git clone https://github.com/onad1ocrypto/nearsignet && cd nearsignet
+node scripts/verify-onchain.mjs     # chain-only proof: contract, scoped key, sealed escrow, 6 txs
+curl -s https://nearsignet.vercel.app/api/near/state   # the hosted app reads the same chain
+```
+
+Expected output of the first command (checked 2026-11-15):
+
+```text
+PASS  contract account exists and holds WASM -- 8.48 NEAR, code hash 5GCa9Jwu3h...
+PASS  verifier key is scoped and has 0 FullAccess -- methods propose_mediation, submit_verification | FullAccess 0
+PASS  escrow NSG-2033 is SEALED with a seal id -- SEALED | SEAL-NSG-2033-597675 | 2/2 by verifier.nearsignet-protocol.testnet
+PASS  tx contract deploy -- DfkegmyKGX... success
+PASS  tx init -- 5VpVFYx1eo... success
+PASS  tx AddKey (scoped verifier) -- 7NYp3vQ7qt... success
+PASS  tx create_and_fund_escrow -- EquEciRe5U... success
+PASS  tx submit_verification -- 48zAoThDXD... success
+PASS  tx approve_and_release -- 6x8XGr4pb... success
+
+9/9 checks passed | every README claim reproduced
+```
+
+Exit code `0` means every line passed; `1` means at least one claim no longer holds.
+The hosted app answers `"liveOnChain":true,"contractId":"nearsignet-protocol.testnet"`.
+
+To run the suites too (needs `npm ci` in `contract/` and `web/`):
+
+```bash
+npm run test:contract && npm run test:i18n && npm run test:media && npm run test:rpc
+```
+
 ### Check the on-chain state yourself (curl, nothing to install)
 
 1. **Do** — list the verifier's access keys:

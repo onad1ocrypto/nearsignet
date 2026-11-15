@@ -1,6 +1,6 @@
 /* =========================================================
    NearSignet — Core NEAR Protocol RPC, Contract & Intents Layer
-   Connects directly to NEAR Testnet (`https://rpc.testnet.near.org`)
+   Connects directly to NEAR Testnet (`https://rpc.testnet.fastnear.com`)
    and the deployed `nearsignet-protocol.testnet` smart contract.
    ========================================================= */
 
