@@ -211,11 +211,11 @@ Everything in this repository — the `NearSignetEscrow` contract, the testnet d
 
 ## 8. Known limits (stated honestly)
 
-- **Public profile pages do not survive a server restart.** `/to/[handle]` reads from an
-  in-memory store (`web/lib/store.ts`). Unless `SUPABASE_URL` + `SUPABASE_SERVICE_KEY`
-  are set, a published handle stays reachable for the lifetime of the serverless
-  instance, then falls back to the visitor's own profile. Nothing else in the app
-  depends on that store: escrows, verdicts, seals and every money path live on NEAR.
+- **Public profile pages do not survive a server restart unless Supabase is configured.**
+  `/to/[handle]` reads from an in-memory store (`web/lib/store.ts`); with
+  `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` it is durable instead — setup, table SQL and
+  verification steps are in [`docs/SUPABASE.md`](docs/SUPABASE.md). Nothing else in the
+  app depends on that store: escrows, verdicts, seals and every money path live on NEAR.
 - **Ownership proof needs a browser wallet.** A sandbox visitor can *claim* an account
   (shown as `DEMO · ACTING AS <account> (UNPROVEN)`); only a NEP-413 signature from
   Meteor/Nightly produces a proven session, and the escrow bar says which one you have.

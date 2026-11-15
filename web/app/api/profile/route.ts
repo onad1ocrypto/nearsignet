@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ME_PROFILE_FALLBACK, sanitizeProfile } from "@/lib/profile";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
-import { getMyPublication, publishProfile, storeEnabled } from "@/lib/store";
+import { durableStore, getMyPublication, publishProfile, storeEnabled } from "@/lib/store";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   const s = verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   const accountId = s?.near?.accountId || "sasam.testnet";
   const pub = await getMyPublication(accountId);
-  return NextResponse.json({ storeEnabled: storeEnabled(), ...pub });
+  return NextResponse.json({ storeEnabled: storeEnabled(), durable: durableStore(), ...pub });
 }
 
 export async function POST(req: NextRequest) {
