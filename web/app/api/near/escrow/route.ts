@@ -26,6 +26,7 @@ interface ChainEscrowRecord {
   amount_yocto: string;
   criteria_count: number;
   review_deadline_ns: string;
+  created_at_ns?: string;
   status: string;
   seal_id: string | null;
 }
@@ -64,21 +65,38 @@ async function waitForEscrow(orderId: string, attempts = 8, gapMs = 700) {
 /**
  * A preset demo order keeps one storage key per browser, so a second visitor gets a
  * fresh on-chain id and never sees the live escrow behind the preset. The client now
- * asks for the preset id as a fallback: we only answer with a record whose order id
- * *starts with* the requested id, so one order id can never leak another order's
- * escrow.
+ * asks for the preset id as a fallback: we scan the contract's escrow list for ids
+ * that *start with* the requested preset, so one order id can never leak another
+ * order's escrow.
+ *
+ * Pick order: newest escrow that is still ACTIVE (a judge can then still deliver,
+ * verify and release), otherwise the newest one at all (a settled escrow still
+ * proves the flow happened).
  */
+const ACTIVE_STATUSES = ["PENDING", "IN_ESCROW", "IN_REVIEW", "REVISION_NEEDED", "FUNDED"];
 async function findPresetEscrow(presetId: string) {
   const clean = presetId.trim();
   if (!clean || clean.length > 32) return null;
   try {
-    const list = await nearCallView<string[]>("list_escrows", {}, NEAR_CONTRACT_ID);
-    const match = (Array.isArray(list) ? list : [])
-      .filter((o) => typeof o === "string" && o.startsWith(clean))
-      .sort()
-      .pop();
-    if (!match) return null;
-    return await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: match }, NEAR_CONTRACT_ID);
+    const matches: ChainEscrowRecord[] = [];
+    for (let page = 0; page < 6; page++) {
+      const rows = await nearCallView<ChainEscrowRecord[]>(
+        "list_escrows",
+        { from_index: page * 50, limit: 50 },
+        NEAR_CONTRACT_ID
+      );
+      const list = Array.isArray(rows) ? rows : [];
+      for (const r of list) {
+        if (typeof r?.order_id === "string" && r.order_id.startsWith(clean)) matches.push(r);
+      }
+      if (list.length < 50) break;
+    }
+    if (!matches.length) return null;
+    const newest = (a: ChainEscrowRecord, b: ChainEscrowRecord) =>
+      BigInt(b.created_at_ns || "0") > BigInt(a.created_at_ns || "0") ? b : a;
+    const active = matches.filter((m) => ACTIVE_STATUSES.includes(String(m.status || "").toUpperCase()));
+    const chosen = (active.length ? active : matches).reduce(newest);
+    return await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: chosen.order_id }, NEAR_CONTRACT_ID);
   } catch {
     return null;
   }

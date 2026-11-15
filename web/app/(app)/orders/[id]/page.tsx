@@ -392,6 +392,12 @@ function OrderDetailInner() {
   const canRelease = demoMode || role === "client";
   const canFund = demoMode || role === "client";
   /** A demo may not run a write path that would fight the chain (see verify handler). */
+  /**
+   * Writes must target the escrow that actually exists on chain. On a preset order a
+   * fresh browser gets its own storage key, so without this a demo release would fund
+   * a brand-new escrow instead of settling the very escrow the proof card shows.
+   */
+  const chainOrderId = chainEscrow?.exists && chainEscrow.orderId ? chainEscrow.orderId : onchainId;
   const chainBusy = Boolean(chainEscrow && ["IN_REVIEW", "SEALED", "REFUNDED", "MEDIATED"].includes(String(chainEscrow.status || "").toUpperCase()));
   const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
 
@@ -410,8 +416,8 @@ function OrderDetailInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "verify",
-          orderId: onchainId,
-          onchainOrderId: onchainId,
+          orderId: chainOrderId,
+          onchainOrderId: chainOrderId,
           amountUsd: order.amount,
           termsHash: order.termsHash,
           passedCount,
@@ -850,8 +856,8 @@ function OrderDetailInner() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     action: "verify",
-                    orderId: onchainId,
-                    onchainOrderId: onchainId,
+                    orderId: chainOrderId,
+                    onchainOrderId: chainOrderId,
                     amountUsd: order.amount,
                     termsHash: order.termsHash,
                     passedCount,
