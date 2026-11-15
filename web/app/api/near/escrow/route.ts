@@ -116,12 +116,25 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const orderId = url.searchParams.get("orderId") ?? "";
   const preset = url.searchParams.get("preset") ?? "";
+  /**
+   * Once this browser has been shown an escrow for a preset, it stays on it: re-ranking
+   * on every poll made the card jump to a different escrow right after the visitor
+   * verified the one in front of them. `prefer` pins the escrow while it exists.
+   */
+  const prefer = url.searchParams.get("prefer") ?? "";
   if (!orderId || orderId.length > 64) {
     return NextResponse.json({ ok: false, error: "orderId required" }, { status: 400 });
   }
   try {
     let escrow = await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: orderId }, NEAR_CONTRACT_ID);
     let resolvedId = orderId;
+    if (!escrow && prefer && prefer.startsWith(preset || prefer) && prefer !== orderId) {
+      const pinned = await nearCallView<ChainEscrowRecord | null>("get_escrow", { order_id: prefer }, NEAR_CONTRACT_ID);
+      if (pinned) {
+        escrow = pinned;
+        resolvedId = pinned.order_id;
+      }
+    }
     if (!escrow && preset) {
       const fallback = await findPresetEscrow(preset);
       if (fallback) {

@@ -111,10 +111,11 @@ interface EscrowProbe {
  * all when the transaction will fail with an `assert` (e.g. ORDER_NOT_FOUND or
  * NOT_CLIENT) — so we check the escrow record first and explain it in the UI.
  */
-async function probeEscrow(onchainId: string, presetId?: string): Promise<EscrowProbe> {
+async function probeEscrow(onchainId: string, presetId?: string, preferId?: string): Promise<EscrowProbe> {
   try {
     const qs = new URLSearchParams({ orderId: onchainId });
     if (presetId) qs.set("preset", presetId);
+    if (preferId) qs.set("prefer", preferId);
     const r = await fetch(`/api/near/escrow?${qs.toString()}`, { cache: "no-store" });
     if (!r.ok) return { exists: false };
     const j = (await r.json()) as {
@@ -188,11 +189,16 @@ function OrderDetailInner() {
   useEffect(() => {
     let alive = true;
     const presetId = String(id || "");
-    const run = () => void probeEscrow(onchainId, presetId).then((p) => { if (alive) setChainEscrow(p); });
+    const pinKey = `nearsignet.chainId.${order.id}`;
+    const run = () => void probeEscrow(onchainId, presetId, lsGet(pinKey) || undefined).then((p) => {
+      if (!alive) return;
+      if (p.exists && p.orderId) lsSet(pinKey, p.orderId);
+      setChainEscrow(p);
+    });
     run();
     const t = setInterval(run, 15_000);
     return () => { alive = false; clearInterval(t); };
-  }, [onchainId, status, id]);
+  }, [onchainId, status, id, order.id]);
 
   const [walletHealth, setWalletHealth] = useState<{ walletId: string | null; canSign: boolean; hasSession: boolean } | null>(null);
   useEffect(() => {
@@ -404,7 +410,8 @@ function OrderDetailInner() {
    * poll is what keeps "verify" from anchoring a brand-new escrow while the card
    * still displays the previous one.
    */
-  const resolveEscrow = async () => await probeEscrow(onchainId, String(id || ""));
+  const pinKey = `nearsignet.chainId.${order.id}`;
+  const resolveEscrow = async () => await probeEscrow(onchainId, String(id || ""), lsGet(pinKey) || undefined);
   const chainBusy = Boolean(chainEscrow && ["IN_REVIEW", "SEALED", "REFUNDED", "MEDIATED"].includes(String(chainEscrow.status || "").toUpperCase()));
   const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
 
@@ -897,7 +904,10 @@ function OrderDetailInner() {
                 })
                   .then((r) => r.json())
                   .then((d) => {
-                    void probeEscrow(onchainId, String(id || "")).then((p) => setChainEscrow(p));
+                    void probeEscrow(onchainId, String(id || ""), lsGet(pinKey) || undefined).then((p) => {
+                      if (p.exists && p.orderId) lsSet(pinKey, p.orderId);
+                      setChainEscrow(p);
+                    });
                     if (d?.fundTxHash) {
                       log({
                         who: NEAR_CONTRACT_ID,
@@ -910,7 +920,7 @@ function OrderDetailInner() {
                     if (d?.txHash) {
                       log({
                         who: NEAR_VERIFIER_ID,
-                        msg: `submit_verification("${onchainId}", ${passedCount}/${order.criteria.length})`,
+                        msg: `submit_verification("${targetId}", ${passedCount}/${order.criteria.length})`,
                         res: `${v.failed === 0 ? "IN_REVIEW" : "REVISION_NEEDED"} · Scoped Key Tx ✓`,
                         txHash: d.txHash,
                         kind: "near",
