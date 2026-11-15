@@ -478,7 +478,7 @@ function OrderDetailInner() {
             <div className="row wrap" style={{ gap: 8 }}>
               <span className="mono tiny muted" style={{ fontWeight: 700 }}>{order.id}</span>
               <span className="badge mono" style={{ borderColor: "var(--border-glow)", color: "var(--mint)" }}>
-                {t("od.onchainIdLabel", { id: onchainId })}
+                {t("od.onchainIdLabel", { id: chainOrderId })}
               </span>
               <span className="badge">
                 <Icon name={order.direction === "from_client" ? "inbox" : "send"} size={12} />
