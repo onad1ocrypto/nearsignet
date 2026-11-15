@@ -384,7 +384,7 @@ function OrderDetailInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "verify",
-          orderId: order.id,
+          orderId: onchainId,
           onchainOrderId: onchainId,
           amountUsd: order.amount,
           termsHash: order.termsHash,
@@ -716,7 +716,7 @@ function OrderDetailInner() {
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     action: "verify",
-                    orderId: order.id,
+                    orderId: onchainId,
                     onchainOrderId: onchainId,
                     amountUsd: order.amount,
                     termsHash: order.termsHash,
@@ -1018,7 +1018,7 @@ function NearDepositPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "fund",
-          orderId: order.id,
+          orderId: onchainId,
           onchainOrderId: onchainId,
           freelancerId: freelancerFor(order).accountId,
           amountUsd: order.amount,
@@ -1201,7 +1201,7 @@ function ReviewPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: mode,
-          orderId: order.id,
+          orderId: onchainId,
           onchainOrderId: onchainId,
           amountUsd: order.amount,
           totalCount: order.criteria.length,
@@ -1462,7 +1462,7 @@ function MediatorPanel({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             action: "mediate_propose",
-            orderId: order.id,
+            orderId: onchainId,
             onchainOrderId: onchainId,
             freelancerPct: proposal.freelancerPct,
           }),
@@ -1498,7 +1498,7 @@ function MediatorPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "mediate_settle",
-          orderId: order.id,
+          orderId: onchainId,
           onchainOrderId: onchainId,
           amountUsd: order.amount,
           totalCount: order.criteria.length,
