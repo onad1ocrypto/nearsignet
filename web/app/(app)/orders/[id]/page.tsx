@@ -398,6 +398,13 @@ function OrderDetailInner() {
    * a brand-new escrow instead of settling the very escrow the proof card shows.
    */
   const chainOrderId = chainEscrow?.exists && chainEscrow.orderId ? chainEscrow.orderId : onchainId;
+  /**
+   * The proof card shows one escrow; a write must land on that same escrow in the same
+   * click. Resolving again here (awaiting the read) instead of trusting a 15s-old
+   * poll is what keeps "verify" from anchoring a brand-new escrow while the card
+   * still displays the previous one.
+   */
+  const resolveEscrow = async () => await probeEscrow(onchainId, String(id || ""));
   const chainBusy = Boolean(chainEscrow && ["IN_REVIEW", "SEALED", "REFUNDED", "MEDIATED"].includes(String(chainEscrow.status || "").toUpperCase()));
   const depositNearFor = (o: Order) => lockDepositNear(o.nearAmount ?? usdToNear(o.amount));
 
@@ -868,17 +875,19 @@ function OrderDetailInner() {
               status={status}
               setStatus={setStatus}
               log={log}
-              onVerdict={(v) => {
+              onVerdict={async (v) => {
                 setVerdict(v);
                 const passedCount = Math.max(0, order.criteria.length - v.failed);
                 // Record BOTH failed (REVISION_NEEDED) and passed (IN_REVIEW) attestations LIVE ON-CHAIN via Orin's Scoped Key!
+                const targetEscrow = await resolveEscrow();
+                const targetId = targetEscrow.exists && targetEscrow.orderId ? targetEscrow.orderId : onchainId;
                 void fetch("/api/near/escrow", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     action: "verify",
-                    orderId: chainOrderId,
-                    onchainOrderId: chainOrderId,
+                    orderId: targetId,
+                    onchainOrderId: targetId,
                     amountUsd: order.amount,
                     termsHash: order.termsHash,
                     passedCount,
@@ -888,6 +897,7 @@ function OrderDetailInner() {
                 })
                   .then((r) => r.json())
                   .then((d) => {
+                    void probeEscrow(onchainId, String(id || "")).then((p) => setChainEscrow(p));
                     if (d?.fundTxHash) {
                       log({
                         who: NEAR_CONTRACT_ID,
