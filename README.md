@@ -257,6 +257,24 @@ Everything in this repository — the `NearSignetEscrow` contract, the testnet d
 - **Testnet only.** No mainnet contract is deployed; the payout account for a real
   settlement is whatever wallet signs `approve_and_release`.
 
-## 9. Licence
+## 9. Trust model — what the owner can and cannot do
+
+`nearsignet-protocol.testnet` has an `owner` (the deployer). Stating it plainly:
+
+| Action | Owner | AI agent (scoped key) | Client | Worker |
+| :--- | :--- | :--- | :--- | :--- |
+| `create_and_fund_escrow` | yes | no | yes (funds it) | no |
+| `submit_verification` | yes | **yes** (only this + `propose_mediation`) | no | no |
+| `approve_and_release` | **no** — the contract asserts `predecessor !== verifier_agent` *and* `predecessor === client` | no | yes | no |
+| `claim_after_timeout` | no | no | no | yes, only after `IN_REVIEW` + all predicates + a 72 h on-chain deadline |
+| `execute_mediation` | no | no | yes, after the scoped `propose_mediation` proposal exists | no |
+| `set_verifier_agent` (rotation) | yes | no | no | no |
+| Move escrowed funds directly | **no such method exists** | no | no | no |
+
+The only admin power is rotating which account plays the verifier role — it cannot
+release, refund or redirect an existing escrow. Every payout path is a promise to
+`rec.client` / `rec.freelancer` recorded in the escrow record itself.
+
+## 10. Licence
 
 **[MIT](./LICENSE)** — `SPDX-License-Identifier: MIT`.
