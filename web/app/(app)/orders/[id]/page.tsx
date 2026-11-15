@@ -733,6 +733,27 @@ function OrderDetailInner() {
               </a>
             )}
           </div>
+          {(() => {
+            /* Real txs from this session (fund / scoped attestation / release), each a
+               link to NEAR Testnet. Never seeded rows — only logged write results. */
+            const near = logs
+              .map((l) => ({ ...l, tx: l.txHash }))
+              .filter((l) => l.tx && /(create_and_fund_escrow|submit_verification|approve_and_release|claim_after_timeout|propose_mediation|execute_mediation)/.test(l.msg))
+              .slice(-4);
+            if (!near.length) return null;
+            return (
+              <div className="col" style={{ gap: 6 }}>
+                {near.map((l) => (
+                  <div key={`${l.msg}-${l.tx}`} className="row between wrap" style={{ gap: 8 }}>
+                    <span className="mono tiny muted" style={{ minWidth: 0, overflowWrap: "anywhere" }}>{l.msg}</span>
+                    <a className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }} href={nearExplorerTx(l.tx!)} target="_blank" rel="noreferrer">
+                      {String(l.tx).slice(0, 10)}… ↗
+                    </a>
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
           <div className="tiny muted">{t("proof.chainNote")}</div>
         </div>
       )}
