@@ -25,6 +25,7 @@ type RawEscrow = {
   status: string;
   verification?: { passed_count: number; total_count: number } | null;
   seal_id?: string | null;
+  sealed_at_ns?: string | null;
 };
 
 export async function GET() {
@@ -41,6 +42,11 @@ export async function GET() {
     nearViewAccessKeys(NEAR_VERIFIER_ID),
   ]);
 
+  /** Sum of the escrows that actually reached SEALED, straight from the contract list. */
+  const sealedYocto = (rawEscrows || [])
+    .filter((e) => String(e.status).toUpperCase() === "SEALED")
+    .reduce((sum, e) => sum + BigInt(e.amount_yocto || "0"), BigInt(0));
+
   const stats = rawStats
     ? {
         ...rawStats,
@@ -48,6 +54,7 @@ export async function GET() {
         totalEscrows: rawStats.total_orders,
         totalSealed: rawStats.total_sealed_count,
         totalVolumeYocto: rawStats.total_locked_yocto,
+        totalSealedYocto: sealedYocto.toString(),
       }
     : null;
 
@@ -60,6 +67,7 @@ export async function GET() {
     passedCount: e.verification?.passed_count ?? 0,
     totalCount: e.verification?.total_count ?? e.criteria_count ?? 0,
     sealId: e.seal_id ?? "",
+    sealedAtNs: e.sealed_at_ns ?? null,
   }));
 
   const fullAccessCount = verifierKeysRaw.filter((k) => k.kind === "FullAccess").length;

@@ -313,7 +313,18 @@ function OrderDetailInner() {
 
   const stageIdx = TIMELINE.findIndex((g) => g.includes(status));
   const tl = [t("tl.agree"), t("tl.fund"), t("tl.work"), t("tl.verify"), t("tl.sealed")];
-  const nearDisplay = order.nearAmount ? `${order.nearAmount} NEAR` : nearOf(order.amount);
+  /**
+   * If the escrow exists on-chain, the chain is the source of truth for the amount.
+   * NSG-2033 was seeded as 0.08 NEAR while the contract holds 0.50 NEAR, so the page
+   * used to disagree with the very transaction it links to.
+   */
+  const chainNear = chainEscrow?.amountNear;
+  const nearDisplay = chainNear
+    ? `${chainNear} NEAR`
+    : order.nearAmount
+      ? `${order.nearAmount} NEAR`
+      : nearOf(order.amount);
+  const nearLabel = chainNear ? `${chainNear} NEAR · ${nearOf(order.amount)} listed` : nearDisplay;
   /**
    * Role of the person in front of this escrow.
    * - wallet connected  -> read the real escrow: whoever funded it is the client,
@@ -590,6 +601,7 @@ function OrderDetailInner() {
               txHash={txHash || order.txHash || order.txHashes?.release || ""}
               sealCode={sealCode}
               mediationSplit={mediationSplit}
+              chainNear={chainEscrow?.amountNear}
             />
           )}
 
@@ -1100,9 +1112,10 @@ function ReviewPanel({
   /**
    * One number drives the summary strip, the log line, the receipt and the
    * actual deposit: whatever the faucet can actually cover (0.05–0.25 NEAR).
+   * When the escrow already exists on-chain, the contract is the source of truth.
    */
   const depositNear = lockDepositNear(order.nearAmount ?? usdToNear(order.amount));
-  const nearAmt = depositNear;
+  const nearAmt = probe?.amountNear ?? depositNear;
 
   useEffect(() => {
     let alive = true;
@@ -1265,13 +1278,14 @@ function ReviewPanel({
 }
 
 function SealedCertificatePanel({
-  order, slam, txHash, sealCode, mediationSplit,
+  order, slam, txHash, sealCode, mediationSplit, chainNear,
 }: {
   order: Order;
   slam: boolean;
   txHash: string;
   sealCode: string;
   mediationSplit: { percent: number; txHash: string; live: boolean } | null;
+  chainNear?: string;
 }) {
   const { t, money } = useI18n();
   const { me } = useMe();
@@ -1284,7 +1298,8 @@ function SealedCertificatePanel({
    * actual deposit: whatever the faucet can actually cover (0.05–0.25 NEAR).
    */
   const depositNear = lockDepositNear(order.nearAmount ?? usdToNear(order.amount));
-  const nearAmt = depositNear;
+  /** A sealed escrow exists on-chain: the receipt shows what the contract actually paid. */
+  const nearAmt = chainNear ?? depositNear;
   /** Who actually received the payout: the escrow's worker, not the viewer. */
   const workerForSeal = order.freelancerAccount || freelancerFor(order).accountId;
   const isRealTestnetTx = Boolean(txHash && txHash.length >= 40 && !txHash.endsWith("NearTx7x9Q"));

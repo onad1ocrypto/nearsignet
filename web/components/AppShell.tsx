@@ -5,11 +5,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useI18n } from "@/lib/i18n";
 import { useMe } from "@/lib/me";
-import { NEEDS_ME, ORDERS } from "@/lib/data";
 import { LangSwitch, Logo, ProfileMenu, ThemeSwitch } from "./ui";
 import { Orin } from "./Orin";
 import { Icon } from "./Icon";
-import { listIncoming } from "@/lib/requests";
 import { NEAR_CONTRACT_ID, nearExplorerAccount } from "@/lib/near";
 
 /**
@@ -29,17 +27,6 @@ export function AppShell({ children }: { children: ReactNode }) {
     router.replace(`/signin?next=${encodeURIComponent(next)}`);
   }, [sessionReady, signedIn, path, router]);
 
-  const [arrived, setArrived] = useState(0);
-  useEffect(() => {
-    if (!sessionReady || !signedIn) return;
-    let alive = true;
-    listIncoming(me.handle).then((rs) => {
-      if (alive) setArrived(rs.filter((r) => r.status === "new").length);
-    });
-    return () => { alive = false; };
-  }, [me.handle, sessionReady, signedIn]);
-
-  const todo = ORDERS.filter((o) => NEEDS_ME.includes(o.status)).length + arrived;
 
   if (!sessionReady || !signedIn) {
     return (
@@ -52,9 +39,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     );
   }
 
-  const nav = [
+  const nav: { href: string; icon: string; label: string; match?: string }[] = [
     { href: "/dashboard", icon: "home", label: t("nav.dashboard") },
-    { href: "/orders?tab=from_client", match: "/orders", icon: "inbox", label: t("nav.orders"), badge: todo },
+    { href: "/orders?tab=from_client", match: "/orders", icon: "inbox", label: t("nav.orders") },
     { href: "/orders/new", icon: "send", label: t("nav.newOrder") },
     { href: "/insights", icon: "shield", label: t("nav.insights") },
     { href: `/to/${me.handle}`, icon: "link", label: t("nav.myPage") },
@@ -78,7 +65,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link key={n.href} href={n.href} className={`top-pill ${on ? "on" : ""}`}>
                   <Icon name={n.icon} size={15} />
                   <span>{n.label}</span>
-                  {!!n.badge && <span className="pill-count">{n.badge}</span>}
                 </Link>
               );
             })}

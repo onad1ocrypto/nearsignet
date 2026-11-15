@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useI18n } from "@/lib/i18n";
+import { NEAR_USD_RATE, useI18n } from "@/lib/i18n";
 import { hostOf, useMe } from "@/lib/me";
-import { NEEDS_ME, ORDERS, STATS, type Order } from "@/lib/data";
+import { NEEDS_ME, ORDERS, type Order } from "@/lib/data";
 import { listIncoming, loadMyOrders, requestAsOrder } from "@/lib/requests";
 import { NEAR_CONTRACT_ID, NEAR_VERIFIER_ID, nearExplorerAccount } from "@/lib/near";
 import { Avatar, Country, Kicker, Product, StatusBadge, Toast } from "@/components/ui";
@@ -16,7 +16,13 @@ export default function DashboardPage() {
   const { me } = useMe();
   const [liveOrders, setLiveOrders] = useState<Order[]>([]);
   const [copied, setCopied] = useState(false);
-  const [chain, setChain] = useState<{ totalEscrows: number; totalSealed: number; verifierAccount: string } | null>(null);
+  const [chain, setChain] = useState<{
+    totalEscrows: number;
+    totalSealed: number;
+    verifierAccount: string;
+    totalVolumeYocto?: string;
+    totalSealedYocto?: string;
+  } | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -37,6 +43,17 @@ export default function DashboardPage() {
   const todoOrders = allOrders.filter((o) => NEEDS_ME.includes(o.status));
   const incomingCount = allOrders.filter((o) => o.direction === "from_client" && o.status === "request").length;
   const pubUrl = `${hostOf()}/to/${me.handle}`;
+
+  /**
+   * The KPI cards used to be a fixture ($690 locked, 138 NEAR) while the contract
+   * held 1.69 NEAR. They now read the same `get_stats` call the header uses, and
+   * the USD figure is derived at the app's reference rate instead of invented.
+   */
+  const lockedNear = chain?.totalVolumeYocto ? Number(chain.totalVolumeYocto) / 1e24 : null;
+  const lockedUsd = lockedNear !== null ? lockedNear * NEAR_USD_RATE : null;
+  const sealedCount = chain?.totalSealed ?? 0;
+  const sealedNear = chain?.totalSealedYocto ? Number(chain.totalSealedYocto) / 1e24 : null;
+  const sealedUsd = sealedNear !== null ? sealedNear * NEAR_USD_RATE : null;
 
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(`https://${pubUrl}`); } catch {}
@@ -98,13 +115,22 @@ export default function DashboardPage() {
       <div className="kpi-grid stagger">
         <div className="card pad" style={{ borderTop: "2px solid #38bdf8" }}>
           <div className="kbd">{t("stat.escrow")}</div>
-          <div className="display" style={{ fontSize: 28, marginTop: 8 }}>{money(STATS.inEscrow)}</div>
-          <div className="mono tiny muted" style={{ marginTop: 4 }}>{nearOf(STATS.inEscrow)} · {t("stat.escrowSub", { n: chain?.totalEscrows ?? 3 })}</div>
+          <div className="display" style={{ fontSize: 28, marginTop: 8 }}>
+            {lockedUsd !== null ? money(lockedUsd) : "—"}
+          </div>
+          <div className="mono tiny muted" style={{ marginTop: 4 }}>
+            {lockedNear !== null ? `${lockedNear.toFixed(2)} NEAR on-chain · ` : ""}{t("stat.escrowSub", { n: chain?.totalEscrows ?? 0 })}
+          </div>
         </div>
         <div className="card pad" style={{ borderTop: "2px solid var(--mint)" }}>
           <div className="kbd">{t("stat.month")}</div>
-          <div className="display" style={{ fontSize: 28, marginTop: 8, color: "var(--mint)" }}>{money(STATS.monthPaid)}</div>
-          <div className="mono tiny muted" style={{ marginTop: 4 }}>{nearOf(STATS.monthPaid)} · {t("stat.monthSub", { n: chain?.totalSealed ?? 12 })}</div>
+          <div className="display" style={{ fontSize: 28, marginTop: 8, color: "var(--mint)" }}>
+            {sealedUsd !== null ? money(sealedUsd) : "—"}
+          </div>
+          <div className="mono tiny muted" style={{ marginTop: 2 }}>
+            {sealedNear !== null ? `${sealedNear.toFixed(2)} NEAR sealed` : ""}
+          </div>
+          <div className="mono tiny muted" style={{ marginTop: 4 }}>{t("stat.monthSub", { n: sealedCount })}</div>
         </div>
         <div className="card pad" style={{ borderTop: "2px solid #f59e0b" }}>
           <div className="kbd">{t("stat.incoming")}</div>
