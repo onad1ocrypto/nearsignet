@@ -597,6 +597,32 @@ function OrderDetailInner() {
         </div>
       )}
 
+      {/* On-chain proof strip: the write paths above record real testnet txs (fund + scoped attestation).
+          Without this the verdict looked like a client-side opinion even when it was signed on-chain. */}
+      {(() => {
+        const near = logs
+          .map((l) => ({ ...l, tx: l.txHash || (l.res?.match(/\b[1-9A-HJ-NP-Za-km-z]{43,44}\b/) ?? [])[0] }))
+          .filter((l) => l.tx && /(create_and_fund_escrow|submit_verification|approve_and_release|claim_after_timeout|propose_mediation|execute_mediation)/.test(l.msg))
+          .slice(-3);
+        if (!near.length) return null;
+        return (
+          <div className="card pad col" style={{ gap: 8, borderColor: "rgba(0,236,151,0.35)" }}>
+            <div className="row between wrap">
+              <span className="kbd">{t("proof.title").toUpperCase()}</span>
+              <span className="mono tiny" style={{ color: "var(--mint)" }}>{t("proof.network")}</span>
+            </div>
+            {near.map((l) => (
+              <div key={`${l.msg}-${l.tx}`} className="row between wrap" style={{ gap: 8 }}>
+                <span className="mono tiny muted" style={{ minWidth: 0, overflowWrap: "anywhere" }}>{l.msg}</span>
+                <a className="mono tiny" style={{ color: "var(--mint)", fontWeight: 700 }} href={nearExplorerTx(l.tx!)} target="_blank" rel="noreferrer">
+                  {String(l.tx).slice(0, 10)}… ↗
+                </a>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       <div className="od-grid od-grid-single">
         <div className="col" style={{ gap: 20 }}>
           {/* A sealed escrow leads with its certificate, not with the client brief. */}
