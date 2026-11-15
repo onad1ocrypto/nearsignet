@@ -103,6 +103,11 @@ done
 Expected (checked on 2026-11-15): `DeployContract`, `init`, `AddKey`,
 `create_and_fund_escrow`, `submit_verification`, `approve_and_release` — all `SuccessValue`.
 
+Every row above was re-checked through the public RPC on 2026-11-15 while writing this
+README — `DeployContract`, `init`, `AddKey`, `create_and_fund_escrow`,
+`submit_verification`, `approve_and_release`, each `SuccessValue`. The loop that does it
+is in the next section, so the claim is reproducible instead of asserted.
+
 ### Check the on-chain state yourself (curl, nothing to install)
 
 1. **Do** — list the verifier's access keys:
